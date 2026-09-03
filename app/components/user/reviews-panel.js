@@ -1,183 +1,203 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+/**
+ * Feedback. The score is five plates, not stars: same vocabulary as the board.
+ * Radios do the work under the plates, so the keyboard and a screen reader get
+ * a real radio group and we get the look.
+ */
 
-function formatDate(value) {
-	if (!value) {
-		return "";
-	}
+import { useEffect, useState } from "react";
+import Panel, { Notice } from "../board/panel";
+import Press from "../board/press";
+import { Stamp } from "../board/tile-text";
 
+const LIMIT = 280;
+
+const SCORES = [
+	{ value: 5, label: "5 — the best" },
+	{ value: 4, label: "4 — good" },
+	{ value: 3, label: "3 — fine" },
+	{ value: 2, label: "2 — poor" },
+	{ value: 1, label: "1 — bad" },
+];
+
+function day(value) {
+	if (!value) return "";
 	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) {
-		return "";
-	}
-
-	return date.toLocaleDateString(undefined, {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
+	if (Number.isNaN(date.getTime())) return "";
+	return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function stars(rating) {
-	const safe = Math.max(1, Math.min(5, Number(rating) || 0));
-	return "★".repeat(safe) + "☆".repeat(5 - safe);
+/** Five plates, filled to the score. */
+function Score({ value }) {
+	const score = Math.max(1, Math.min(5, Number(value) || 0));
+	return (
+		<span className="flex items-center gap-1" role="img" aria-label={`${score} out of 5`}>
+			{[1, 2, 3, 4, 5].map((step) => (
+				<span
+					key={step}
+					aria-hidden="true"
+					className="h-[0.7rem] w-[0.7rem] flex-none rounded-full"
+					style={{
+						backgroundColor: step <= score ? "var(--action)" : "transparent",
+						border: "1px solid var(--rail)",
+					}}
+				/>
+			))}
+		</span>
+	);
 }
 
-export default function ReviewsPanel({
-	title = "Member Reviews",
-	description = "Share your gym experience and help new members choose confidently.",
-}) {
+export default function ReviewsPanel() {
 	const [rating, setRating] = useState(5);
 	const [comment, setComment] = useState("");
 	const [reviews, setReviews] = useState([]);
 	const [loading, setLoading] = useState(true);
-	const [submitting, setSubmitting] = useState(false);
+	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState("");
-	const [success, setSuccess] = useState("");
-
-	const remaining = useMemo(() => 280 - comment.length, [comment]);
+	const [note, setNote] = useState("");
 
 	useEffect(() => {
-		let active = true;
-
-		async function loadReviews() {
-			setLoading(true);
-			setError("");
+		let live = true;
+		(async () => {
 			try {
 				const response = await fetch("/api/reviews", { cache: "no-store" });
-				const payload = await response.json();
+				const body = await response.json().catch(() => ({}));
+				if (!live) return;
 				if (!response.ok) {
-					if (active) {
-						setError(payload?.error || "Unable to load reviews.");
-					}
+					setError(body?.error ?? "Could not load what people have written.");
 					return;
 				}
-
-				if (active) {
-					setReviews(Array.isArray(payload?.reviews) ? payload.reviews : []);
-				}
+				setReviews(Array.isArray(body?.reviews) ? body.reviews : []);
 			} catch {
-				if (active) {
-					setError("Unable to load reviews.");
-				}
+				if (live) setError("Could not reach the studio.");
 			} finally {
-				if (active) {
-					setLoading(false);
-				}
+				if (live) setLoading(false);
 			}
-		}
-
-		loadReviews();
+		})();
 		return () => {
-			active = false;
+			live = false;
 		};
 	}, []);
 
-	async function submitReview(event) {
+	const submit = async (event) => {
 		event.preventDefault();
-		setSubmitting(true);
+		setBusy(true);
 		setError("");
-		setSuccess("");
-
+		setNote("");
 		try {
 			const response = await fetch("/api/reviews", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ rating, comment }),
 			});
-			const payload = await response.json();
-
+			const body = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				setError(payload?.error || "Unable to submit review.");
+				setError(body?.error ?? "Could not post that.");
 				return;
 			}
-
 			setComment("");
 			setRating(5);
-			setSuccess("Thanks for your review.");
-			if (payload?.review) {
-				setReviews((prev) => [payload.review, ...prev].slice(0, 20));
-			}
+			setNote("Posted. Thanks.");
+			if (body?.review) setReviews((current) => [body.review, ...current].slice(0, 20));
 		} catch {
-			setError("Unable to submit review.");
+			setError("Could not reach the studio.");
 		} finally {
-			setSubmitting(false);
+			setBusy(false);
 		}
-	}
+	};
+
+	const left = LIMIT - comment.length;
 
 	return (
-		<section
-			className="dashboard-card reviews-card"
-			aria-label="Member reviews">
-			<div className="reviews-head">
-				<h2>{title}</h2>
-				<p>{description}</p>
-			</div>
+		<Panel title="Say how it is going" hint="Members read this. Keep it about the room, the kit and the training.">
+			<form className="flex flex-col gap-4" onSubmit={submit}>
+				<fieldset className="flex flex-col gap-2">
+					<legend className="mb-1">
+						<Stamp tone="tile">Your score</Stamp>
+					</legend>
+					<div className="flex flex-wrap gap-2">
+						{SCORES.map((option) => {
+							const live = option.value === rating;
+							return (
+								<label
+									key={option.value}
+									className="flex min-h-[2.75rem] cursor-pointer items-center gap-2 px-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[color:var(--action)]"
+									style={{
+										border: live ? "1px solid var(--action)" : "1px solid var(--rail)",
+										backgroundColor: live ? "var(--board)" : "transparent",
+									}}
+								>
+									<input
+										type="radio"
+										name="rating"
+										className="sr-only"
+										value={option.value}
+										checked={live}
+										onChange={() => setRating(option.value)}
+									/>
+									<Score value={option.value} />
+									<span
+										className={`text-[0.72rem] font-bold uppercase tracking-[0.12em] ${
+											live ? "text-tile" : "text-muted"
+										}`}
+									>
+										{option.value}
+									</span>
+									<span className="sr-only">{option.label}</span>
+								</label>
+							);
+						})}
+					</div>
+				</fieldset>
 
-			<form className="reviews-form" onSubmit={submitReview}>
-				<label>
-					Rating
-					<select
-						value={rating}
-						onChange={(event) => setRating(Number(event.target.value))}>
-						<option value={5}>5 - Excellent</option>
-						<option value={4}>4 - Great</option>
-						<option value={3}>3 - Good</option>
-						<option value={2}>2 - Okay</option>
-						<option value={1}>1 - Poor</option>
-					</select>
-				</label>
-
-				<label className="reviews-comment-field">
-					Your review
+				<label className="flex flex-col gap-1.5">
+					<Stamp tone="tile">What happened</Stamp>
 					<textarea
+						className="board-input"
 						value={comment}
-						onChange={(event) => setComment(event.target.value)}
+						onChange={(event) => setComment(event.target.value.slice(0, LIMIT))}
 						minLength={8}
-						maxLength={280}
-						placeholder="Tell people about trainers, atmosphere, equipment, or your progress."
+						maxLength={LIMIT}
 						required
+						placeholder="Trainers, equipment, the room, your own progress"
 					/>
+					<span className="tabular text-[0.72rem] font-bold uppercase tracking-[0.14em] text-muted">
+						{left} left
+					</span>
 				</label>
 
-				<div className="reviews-form-footer">
-					<p className="reviews-count">{remaining} chars left</p>
-					<button
-						type="submit"
-						className="btn primary reviews-submit-btn"
-						disabled={submitting}>
-						{submitting ? "Posting..." : "Post Review"}
-					</button>
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<Notice tone={error ? "error" : "good"}>{error || note}</Notice>
+					<Press type="submit" disabled={busy || comment.trim().length < 8}>
+						{busy ? "Posting" : "Post it"}
+					</Press>
 				</div>
 			</form>
 
-			{error ? <p className="calorie-error">{error}</p> : null}
-			{success ? <p className="goal-success">{success}</p> : null}
-
-			<div className="reviews-list">
-				{loading ? <p className="exercise-empty">Loading reviews...</p> : null}
-				{!loading && reviews.length === 0 ? (
-					<p className="exercise-empty">
-						No reviews yet. Be the first to post one.
-					</p>
+			<div className="flex flex-col gap-3">
+				{loading ? <Stamp>Reading the wall</Stamp> : null}
+				{!loading && !reviews.length ? (
+					<Stamp>Nothing written yet — yours would be the first</Stamp>
 				) : null}
 
 				{reviews.map((review) => (
-					<article className="review-item" key={review.id}>
-						<div className="review-top">
-							<strong>{review.authorName || "Member"}</strong>
-							<span
-								className="review-stars"
-								aria-label={`${review.rating} stars`}>
-								{stars(review.rating)}
+					<article
+						key={review.id}
+						className="flex flex-col gap-1.5 p-3"
+						style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
+					>
+						<div className="flex flex-wrap items-center justify-between gap-2">
+							<span className="text-[0.8rem] font-bold uppercase tracking-[0.1em] text-tile">
+								{review.authorName || "Member"}
 							</span>
+							<Score value={review.rating} />
 						</div>
-						<p>{review.comment}</p>
-						<span className="review-date">{formatDate(review.createdAt)}</span>
+						<p className="max-w-measure text-[0.82rem] leading-relaxed text-tile">{review.comment}</p>
+						{day(review.createdAt) ? <Stamp className="tabular">{day(review.createdAt)}</Stamp> : null}
 					</article>
 				))}
 			</div>
-		</section>
+		</Panel>
 	);
 }

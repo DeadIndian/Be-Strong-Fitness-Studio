@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSessionContext } from "@/lib/auth/server";
 import { USER_ROLES } from "@/lib/constants/auth";
-import {
-	ALLOWED_MEMBERSHIP_STATUS,
-	MEMBERSHIP_PLANS,
-	getMembershipPlanById,
-} from "@/lib/constants/memberships";
+import { ALLOWED_MEMBERSHIP_STATUS } from "@/lib/constants/memberships";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { findPlan, getSiteSettings } from "@/lib/site/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +97,10 @@ export async function GET() {
 		}
 
 		const usersResult = await adminAuth.listUsers(1000);
-		const membershipsByUid = await loadMembershipMap();
+		const [membershipsByUid, settings] = await Promise.all([
+			loadMembershipMap(),
+			getSiteSettings(),
+		]);
 
 		const users = usersResult.users.map((userRecord) =>
 			mergeUserWithMembership(userRecord, membershipsByUid.get(userRecord.uid)),
@@ -108,7 +108,7 @@ export async function GET() {
 
 		return NextResponse.json({
 			users,
-			plans: MEMBERSHIP_PLANS,
+			plans: settings.plans,
 			allowedStatus: Array.from(ALLOWED_MEMBERSHIP_STATUS),
 		});
 	} catch (error) {
@@ -143,7 +143,8 @@ export async function PATCH(request) {
 			);
 		}
 
-		const plan = planId ? getMembershipPlanById(planId) : null;
+		const settings = await getSiteSettings();
+		const plan = planId ? findPlan(settings, planId) : null;
 		if (planId && !plan) {
 			return NextResponse.json(
 				{ error: "Invalid plan selected." },
@@ -157,7 +158,7 @@ export async function PATCH(request) {
 		const previous = existing.data() ?? {};
 
 		const nextPlanId = plan?.id ?? previous.planId ?? null;
-		const nextPlan = nextPlanId ? getMembershipPlanById(nextPlanId) : null;
+		const nextPlan = nextPlanId ? findPlan(settings, nextPlanId) : null;
 		const nextStartedAt = plan ? now : (previous.startedAt ?? now);
 		const nextDurationMonths =
 			nextPlan?.durationMonths ?? previous.durationMonths ?? null;

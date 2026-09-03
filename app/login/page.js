@@ -1,18 +1,22 @@
 import { redirect } from "next/navigation";
-import LoginForm from "../components/auth/login-form";
-import { getSessionContext } from "../../lib/auth/server";
+import LoginForm from "@/app/components/auth/login-form";
+import { getSessionContext } from "@/lib/auth/server";
+import { getSiteSettings } from "@/lib/site/settings";
 
-export const metadata = {
-	title: "Login | BE STRONG FITNESS STUDIO",
-	description:
-		"Sign in or create your account to access the BE STRONG experience.",
-};
+/** The studio renames itself in the admin panel; the tab title follows it. */
+export async function generateMetadata() {
+	const { brand } = await getSiteSettings();
+	return {
+		title: `Sign in | ${brand.name}`,
+		description: `Sign in or open an account to take a membership term at ${brand.name}.`,
+	};
+}
 
 export default async function LoginPage() {
-	const session = await getSessionContext();
+	const [session, settings] = await Promise.all([getSessionContext(), getSiteSettings()]);
 	if (session) {
 		redirect(session.role === "staff" ? "/dashboard/staff" : "/dashboard/user");
 	}
 
-	return <LoginForm />;
+	return <LoginForm brand={settings.brand} />;
 }

@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSessionContext } from "@/lib/auth/server";
 import { USER_ROLES } from "@/lib/constants/auth";
-import {
-	MEMBERSHIP_PLANS,
-	MEMBERSHIP_STATUS,
-	getMembershipPlanById,
-} from "@/lib/constants/memberships";
+import { MEMBERSHIP_STATUS } from "@/lib/constants/memberships";
 import { adminDb } from "@/lib/firebase/admin";
+import { findPlan, getSiteSettings } from "@/lib/site/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -72,10 +69,14 @@ export async function GET() {
 			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 		}
 
-		const snapshot = await membershipDoc(session.uid).get();
+		// Plans come from the owner's settings, so a price edit binds here too.
+		const [snapshot, settings] = await Promise.all([
+			membershipDoc(session.uid).get(),
+			getSiteSettings(),
+		]);
 		return NextResponse.json({
 			membership: sanitizeMembership(snapshot.data()),
-			plans: MEMBERSHIP_PLANS,
+			plans: settings.plans,
 		});
 	} catch (error) {
 		console.error("[membership:get]", error);
@@ -99,7 +100,7 @@ export async function POST(request) {
 
 		const body = await request.json();
 		const planId = String(body?.planId ?? "").trim();
-		const plan = getMembershipPlanById(planId);
+		const plan = findPlan(await getSiteSettings(), planId);
 		if (!plan) {
 			return NextResponse.json(
 				{ error: "Invalid membership plan." },

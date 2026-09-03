@@ -1,165 +1,150 @@
 "use client";
 
-import { useMemo, useState } from "react";
+/**
+ * Exercise lookup. A search, a mode, and cards that are mostly the demo loop —
+ * the picture is the answer, the words are the cue. Each result keeps its own
+ * <details> for the steps so a phone shows ten exercises, not one.
+ */
 
-const SEARCH_MODES = [
-	{ value: "auto", label: "Auto" },
-	{ value: "name", label: "Exercise name" },
-	{ value: "bodyPart", label: "Body part" },
-	{ value: "target", label: "Target muscle" },
+import { useState } from "react";
+import Panel, { Notice } from "../board/panel";
+import Press from "../board/press";
+import { Stamp } from "../board/tile-text";
+
+const MODES = [
+	{ value: "auto", label: "Anything" },
+	{ value: "name", label: "By name" },
+	{ value: "bodyPart", label: "By body part" },
+	{ value: "target", label: "By muscle" },
 ];
 
-function toList(values) {
-	if (!Array.isArray(values) || values.length === 0) {
-		return [];
-	}
+const HELP = {
+	auto: "A name, a body part or a muscle — whichever you have.",
+	name: "An exercise name: cable fly, push up, romanian deadlift.",
+	bodyPart: "chest · back · shoulders · upper legs · waist · cardio",
+	target: "biceps · triceps · glutes · quads · hamstrings · calves",
+};
 
-	return values;
-}
-
-export default function WorkoutFinder({
-	title = "Workout Finder",
-	description = "Search ExerciseDB for GIF demos and quick training cues.",
-}) {
+export default function WorkoutFinder() {
 	const [query, setQuery] = useState("");
 	const [mode, setMode] = useState("auto");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [results, setResults] = useState([]);
-	const [searched, setSearched] = useState(false);
+	const [asked, setAsked] = useState(false);
 
-	const helperText = useMemo(() => {
-		switch (mode) {
-			case "bodyPart":
-				return "Try chest, back, shoulders, legs, abs, or cardio.";
-			case "target":
-				return "Try biceps, triceps, glutes, quads, hamstrings, or calves.";
-			case "name":
-				return "Search an exercise name like cable fly or push up.";
-			default:
-				return "Search by exercise name, body part, or target muscle.";
-		}
-	}, [mode]);
-
-	async function searchWorkouts(event) {
+	const search = async (event) => {
 		event.preventDefault();
-		const trimmed = query.trim();
-		setSearched(true);
+		const term = query.trim();
+		setAsked(true);
 		setError("");
 		setResults([]);
-
-		if (trimmed.length < 2) {
-			setError("Type at least 2 characters.");
+		if (term.length < 2) {
+			setError("Type at least two letters.");
 			return;
 		}
-
 		setLoading(true);
 		try {
-			const params = new URLSearchParams({ q: trimmed, mode });
-			const response = await fetch(`/api/workouts/search?${params.toString()}`);
-			const payload = await response.json();
-
+			const response = await fetch(
+				`/api/workouts/search?${new URLSearchParams({ q: term, mode })}`,
+			);
+			const body = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				setError(payload?.error || "Unable to fetch workouts.");
+				setError(body?.error ?? "That search did not come back.");
 				return;
 			}
-
-			setResults(Array.isArray(payload?.exercises) ? payload.exercises : []);
+			setResults(Array.isArray(body?.exercises) ? body.exercises : []);
 		} catch {
-			setError("Unable to fetch workouts.");
+			setError("Could not reach the exercise database.");
 		} finally {
 			setLoading(false);
 		}
-	}
+	};
 
 	return (
-		<section
-			className="dashboard-card exercise-card"
-			aria-label="Workout finder">
-			<div className="exercise-head">
-				<h2>{title}</h2>
-				<p>{description}</p>
-			</div>
-
-			<form className="exercise-search" onSubmit={searchWorkouts}>
+		<Panel title="How it is done" hint={HELP[mode]}>
+			<form className="flex flex-col gap-2 sm:flex-row" onSubmit={search}>
 				<input
-					type="text"
+					className="board-input flex-1"
 					value={query}
 					onChange={(event) => setQuery(event.target.value)}
-					placeholder="Example: chest, cable fly, triceps"
-					aria-label="Search workout"
+					placeholder="Chest, cable fly, triceps"
+					aria-label="Search an exercise"
+					enterKeyHint="search"
 				/>
 				<select
+					className="board-input sm:w-44"
 					value={mode}
 					onChange={(event) => setMode(event.target.value)}
-					aria-label="Search mode">
-					{SEARCH_MODES.map((option) => (
+					aria-label="What to search by"
+				>
+					{MODES.map((option) => (
 						<option key={option.value} value={option.value}>
 							{option.label}
 						</option>
 					))}
 				</select>
-				<button
-					type="submit"
-					className="btn primary exercise-search-btn"
-					disabled={loading}>
-					{loading ? "Loading..." : "Find"}
-				</button>
+				<Press type="submit" disabled={loading} full className="sm:w-auto">
+					{loading ? "Looking" : "Find it"}
+				</Press>
 			</form>
 
-			<p className="exercise-subtext">{helperText}</p>
-			{error ? <p className="calorie-error">{error}</p> : null}
+			<Notice tone="error">{error}</Notice>
 
-			<div className="exercise-grid">
-				{!searched && !loading ? (
-					<p className="exercise-empty">
-						Search to see a few relevant exercise demos.
-					</p>
-				) : null}
+			{!asked && !loading ? <Stamp>Search to see the demos</Stamp> : null}
+			{asked && !loading && !error && !results.length ? (
+				<Stamp>Nothing under that name</Stamp>
+			) : null}
 
-				{searched && !loading && results.length === 0 && !error ? (
-					<p className="exercise-empty">No workouts found.</p>
-				) : null}
-
+			<ul className="grid gap-3 sm:grid-cols-2">
 				{results.map((exercise) => (
-					<article className="exercise-item" key={exercise.id}>
+					<li
+						key={exercise.id}
+						className="flex flex-col"
+						style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
+					>
 						{exercise.gifUrl ? (
-							<div className="exercise-media">
-								<img
-									src={exercise.gifUrl}
-									alt={exercise.name}
-									className="exercise-image"
-									loading="lazy"
-								/>
-							</div>
+							// eslint-disable-next-line @next/next/no-img-element -- third-party GIF, no loader config
+							<img
+								src={exercise.gifUrl}
+								alt={`${exercise.name} demonstration`}
+								loading="lazy"
+								className="aspect-[4/3] w-full bg-[color:var(--board-deep)] object-contain"
+							/>
 						) : null}
-						<div className="exercise-content">
-							<div className="exercise-title-row">
-								<h3>{exercise.name}</h3>
-								<span className="role-badge user">{exercise.bodyPart}</span>
+
+						<div className="flex flex-1 flex-col gap-2 p-3">
+							<div className="flex flex-wrap items-baseline justify-between gap-2">
+								<span className="text-[0.86rem] font-bold uppercase leading-tight tracking-[0.06em] text-tile">
+									{exercise.name}
+								</span>
+								<Stamp tone="action">{exercise.bodyPart}</Stamp>
 							</div>
-							<p>{exercise.target}</p>
-							<ul className="exercise-meta">
-								<li>Equipment: {exercise.equipment}</li>
-								<li>
-									Secondary:{" "}
-									{toList(exercise.secondaryMuscles).slice(0, 3).join(", ") ||
-										"--"}
-								</li>
-							</ul>
-							{toList(exercise.instructions).length > 0 ? (
-								<ol className="exercise-instructions">
-									{toList(exercise.instructions)
-										.slice(0, 3)
-										.map((step, index) => (
+
+							<p className="text-[0.76rem] leading-snug text-muted">
+								Works {exercise.target}
+								{exercise.equipment ? ` · needs ${exercise.equipment}` : ""}
+								{exercise.secondaryMuscles?.length
+									? ` · also ${exercise.secondaryMuscles.slice(0, 3).join(", ")}`
+									: ""}
+							</p>
+
+							{exercise.instructions?.length ? (
+								<details className="mt-auto">
+									<summary className="min-h-[2.25rem] cursor-pointer list-none py-1 text-[0.7rem] font-bold uppercase tracking-[0.18em] text-action">
+										How to do it
+									</summary>
+									<ol className="mt-1 flex list-decimal flex-col gap-1 pl-4 text-[0.76rem] leading-snug text-tile">
+										{exercise.instructions.slice(0, 5).map((step, index) => (
 											<li key={`${exercise.id}-${index}`}>{step}</li>
 										))}
-								</ol>
+									</ol>
+								</details>
 							) : null}
 						</div>
-					</article>
+					</li>
 				))}
-			</div>
-		</section>
+			</ul>
+		</Panel>
 	);
 }

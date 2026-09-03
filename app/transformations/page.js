@@ -1,61 +1,80 @@
-import Link from "next/link";
-import { transformations } from "../data/transformations";
+/**
+ * The whole results wall. The board's RESULTS section shows the first few; this
+ * page shows every row the studio has entered, from the same settings and in the
+ * same card, so nothing here is a second version of the same claim.
+ */
 
-export const metadata = {
-	title: "Client Transformations | BE STRONG FITNESS STUDIO",
-	description:
-		"Explore real BE STRONG member transformations and progress journeys.",
-};
+import { readViewer } from "@/lib/auth/viewer";
+import { getSiteSettings } from "@/lib/site/settings";
+import Press from "@/app/components/board/press";
+import PressText from "@/app/components/board/press-text";
+import ResultCard from "@/app/components/board/result-card";
+import { EmptySlots, Stamp } from "@/app/components/board/tile-text";
 
-export default function TransformationsPage() {
+export async function generateMetadata() {
+	const { brand } = await getSiteSettings();
+	return {
+		title: `Results | ${brand.name}`,
+		description: `Member results recorded at ${brand.name}.`,
+	};
+}
+
+export default async function ResultsPage() {
+	const [settings, viewer] = await Promise.all([getSiteSettings(), readViewer()]);
+	const results = settings.results ?? [];
+	const sampled = results.some((result) => result.sample);
+	const real = results.filter((result) => !result.sample).length;
+
 	return (
-		<main className="hall-page">
-			<header className="hall-header">
-				<div className="container hall-header-inner">
-					<div>
-						<p className="hall-kicker">Hall of Fame</p>
-						<h1>Real Member Transformations</h1>
-						<p>Consistency, coaching, and results.</p>
-					</div>
-					<div className="hall-actions">
-						<Link href="/" className="btn secondary">
-							Back Home
-						</Link>
-						<Link href="/#cta" className="btn primary">
-							Start Your Journey
-						</Link>
-					</div>
-				</div>
+		<main id="board-main" className="mx-auto flex w-full max-w-board flex-col gap-8 px-3 py-10 sm:px-6 sm:py-16">
+			<header className="flex flex-col gap-3">
+				<Stamp tone="action">Member results</Stamp>
+				<PressText as="h1" text="RESULTS" className="tile-md" />
+				<p className="max-w-measure text-[0.9rem] leading-relaxed text-muted">
+					{results.length
+						? "Every result the studio has put on the board. The studio enters these itself — each one is a member who trained here."
+						: "The studio has not put any results on the board yet."}
+				</p>
+				{sampled ? (
+					<Stamp>
+						{real
+							? "Rows marked Sample are demonstration rows, not members."
+							: "Every row here is a demonstration row. Real member results replace them when the studio adds them."}
+					</Stamp>
+				) : null}
 			</header>
 
-			<section className="section hall-section">
-				<div className="container">
-					<div className="hall-grid">
-						{transformations.map((person) => (
-							<article className="hall-card" key={person.id}>
-								<img src={person.image} alt={`${person.name} transformation`} />
-								<div className="hall-card-content">
-									<h3>{person.name}</h3>
-									<ul>
-										<li>
-											<span>Result</span>
-											<strong>{person.result}</strong>
-										</li>
-										<li>
-											<span>Duration</span>
-											<strong>{person.duration}</strong>
-										</li>
-										<li>
-											<span>Focus</span>
-											<strong>{person.focus}</strong>
-										</li>
-									</ul>
-								</div>
-							</article>
-						))}
-					</div>
+			{results.length ? (
+				<ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					{results.map((result) => (
+						<li key={result.id}>
+							<ResultCard
+								result={result}
+								sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 24rem"
+							/>
+						</li>
+					))}
+				</ul>
+			) : (
+				<div
+					className="flex flex-col items-start gap-3 p-4"
+					style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board-deep)" }}
+				>
+					<EmptySlots count={7} label="No results on the board yet" />
+					<p className="max-w-measure text-[0.84rem] leading-relaxed text-muted">
+						Nothing to show here yet. The room, the terms and the hours are all on the board.
+					</p>
 				</div>
-			</section>
+			)}
+
+			<div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+				<Press href={viewer ? "/dashboard/user" : "/login"} size="lg">
+					{viewer ? "Pick your plan" : "Sign in to join"}
+				</Press>
+				<Press href="/" tone="ghost" size="md">
+					Back to the board
+				</Press>
+			</div>
 		</main>
 	);
 }

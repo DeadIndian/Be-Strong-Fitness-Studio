@@ -1,23 +1,32 @@
-import { requireAuth } from "../../../../lib/auth/server";
-import { USER_ROLES } from "../../../../lib/constants/auth";
-import {
-	ALLOWED_MEMBERSHIP_STATUS,
-	MEMBERSHIP_PLANS,
-} from "../../../../lib/constants/memberships";
-import MembershipManagementTable from "../../../components/staff/membership-management-table";
+import { requireStaff } from "@/lib/auth/server";
+import { ALLOWED_MEMBERSHIP_STATUS } from "@/lib/constants/memberships";
+import { getSiteSettings } from "@/lib/site/settings";
+import MembershipManagementTable from "@/app/components/staff/membership-management-table";
+import { Stamp, TileText } from "@/app/components/board/tile-text";
 import { getStaffUsers } from "../staff-data";
 
+export const metadata = { title: "Memberships" };
+
 export default async function StaffMembershipsPage() {
-	await requireAuth({ role: USER_ROLES.STAFF });
-	const users = await getStaffUsers({ includeMembership: true });
+	await requireStaff();
+	// The plans are the owner's, not a constant: an edit on the website binds here.
+	const [users, settings] = await Promise.all([
+		getStaffUsers({ includeMembership: true }),
+		getSiteSettings(),
+	]);
 
 	return (
-		<div className="dashboard-card">
-			<h2>Member Management</h2>
-			<p>Assign plans, update status, and manage memberships.</p>
+		<div className="mx-auto flex w-full max-w-board flex-col gap-6 px-3 py-8 sm:px-6">
+			<header className="flex flex-col gap-3">
+				<Stamp tone="action">Who is on what plan</Stamp>
+				<TileText as="h1" text="MEMBERS" className="tile-md" />
+				<p className="max-w-measure text-[0.88rem] leading-relaxed text-muted">
+					Set a plan, pause it, or end it. Changes apply the moment you save the row.
+				</p>
+			</header>
 			<MembershipManagementTable
 				initialUsers={users}
-				plans={MEMBERSHIP_PLANS}
+				plans={settings.plans}
 				allowedStatus={Array.from(ALLOWED_MEMBERSHIP_STATUS)}
 			/>
 		</div>

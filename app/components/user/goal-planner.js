@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+/**
+ * The planner. Your numbers, then a target, then the plan the numbers imply.
+ * Everything here is arithmetic on what you typed — it is labelled as such, and
+ * it never claims a trainer or a dietitian looked at it.
+ */
 
-const INITIAL_PROFILE = {
+import { useEffect, useState } from "react";
+import Panel, { Notice, Readout } from "../board/panel";
+import Press from "../board/press";
+import { SelectField, TextField } from "../board/field";
+import { Stamp } from "../board/tile-text";
+
+const BLANK = {
 	age: "",
 	heightCm: "",
 	weightKg: "",
@@ -12,25 +22,22 @@ const INITIAL_PROFILE = {
 	dietaryPreference: "none",
 };
 
-const ACTIVITY_LEVELS = [
-	{ value: "sedentary", label: "Sedentary" },
-	{ value: "light", label: "Lightly active" },
-	{ value: "moderate", label: "Moderately active" },
-	{ value: "active", label: "Active" },
-	{ value: "very_active", label: "Very active" },
+const ACTIVITY = [
+	{ value: "sedentary", label: "Desk job, no training" },
+	{ value: "light", label: "Light — a walk most days" },
+	{ value: "moderate", label: "Moderate — training some days" },
+	{ value: "active", label: "Active — training most days" },
+	{ value: "very_active", label: "Very active — hard training daily" },
 ];
 
-const GENDERS = [
-	{ value: "unspecified", label: "Prefer not to say" },
+const GENDER = [
+	{ value: "unspecified", label: "Rather not say" },
 	{ value: "male", label: "Male" },
 	{ value: "female", label: "Female" },
 ];
 
-function profileFromApi(profile) {
-	if (!profile) {
-		return INITIAL_PROFILE;
-	}
-
+function fromApi(profile) {
+	if (!profile) return BLANK;
 	return {
 		age: String(profile.age ?? ""),
 		heightCm: String(profile.heightCm ?? ""),
@@ -42,323 +49,284 @@ function profileFromApi(profile) {
 	};
 }
 
-export default function GoalPlanner({
-	title = "Goal Planner",
-	description = "Save your body details once, choose your target, and get a food + exercise plan instantly.",
-}) {
-	const [profile, setProfile] = useState(INITIAL_PROFILE);
+/** One list of the plan's lines under a stamped heading. */
+function PlanList({ title, items }) {
+	if (!Array.isArray(items) || !items.length) return null;
+	return (
+		<div
+			className="flex flex-col gap-2 p-3"
+			style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
+		>
+			<Stamp tone="action">{title}</Stamp>
+			<ul className="flex flex-col gap-1.5">
+				{items.map((item) => (
+					<li key={item} className="flex gap-2 text-[0.8rem] leading-snug text-tile">
+						<span aria-hidden="true" className="text-rail">
+							/
+						</span>
+						{item}
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+export default function GoalPlanner() {
+	const [profile, setProfile] = useState(BLANK);
 	const [goals, setGoals] = useState([]);
-	const [selectedGoal, setSelectedGoal] = useState("");
+	const [chosen, setChosen] = useState("");
 	const [plan, setPlan] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [savingProfile, setSavingProfile] = useState(false);
-	const [loadingPlan, setLoadingPlan] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [working, setWorking] = useState(false);
 	const [error, setError] = useState("");
-	const [success, setSuccess] = useState("");
-
-	const hasSavedProfile = useMemo(
-		() => Boolean(profile.age && profile.heightCm && profile.weightKg),
-		[profile],
-	);
+	const [note, setNote] = useState("");
 
 	useEffect(() => {
-		let active = true;
-
-		async function loadPlanner() {
-			setLoading(true);
-			setError("");
-
+		let live = true;
+		(async () => {
 			try {
 				const response = await fetch("/api/user/plan", { cache: "no-store" });
-				const payload = await response.json();
-
+				const body = await response.json().catch(() => ({}));
+				if (!live) return;
 				if (!response.ok) {
-					if (active) {
-						setError(payload?.error || "Unable to load planner data.");
-					}
+					setError(body?.error ?? "Could not load your details.");
 					return;
 				}
-
-				if (!active) {
-					return;
-				}
-
-				setProfile(profileFromApi(payload?.profile));
-				setGoals(Array.isArray(payload?.goals) ? payload.goals : []);
-				setSelectedGoal(String(payload?.selectedGoal ?? ""));
-				setPlan(payload?.plan ?? null);
-				if (payload?.error) {
-					setError(String(payload.error));
-				}
+				setProfile(fromApi(body?.profile));
+				setGoals(Array.isArray(body?.goals) ? body.goals : []);
+				setChosen(String(body?.selectedGoal ?? ""));
+				setPlan(body?.plan ?? null);
 			} catch {
-				if (active) {
-					setError("Unable to load planner data.");
-				}
+				if (live) setError("Could not reach the studio.");
 			} finally {
-				if (active) {
-					setLoading(false);
-				}
+				if (live) setLoading(false);
 			}
-		}
-
-		loadPlanner();
+		})();
 		return () => {
-			active = false;
+			live = false;
 		};
 	}, []);
 
-	function handleProfileChange(event) {
+	const edit = (event) => {
 		const { name, value } = event.target;
-		setProfile((prev) => ({ ...prev, [name]: value }));
-	}
+		setProfile((current) => ({ ...current, [name]: value }));
+		setNote("");
+	};
 
-	async function saveProfile(event) {
+	const saveProfile = async (event) => {
 		event.preventDefault();
-		setSavingProfile(true);
+		setSaving(true);
 		setError("");
-		setSuccess("");
-
+		setNote("");
 		try {
 			const response = await fetch("/api/user/plan", {
 				method: "PUT",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ profile }),
 			});
-			const payload = await response.json();
-
+			const body = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				setError(payload?.error || "Unable to save details.");
+				setError(body?.error ?? "Could not save your details.");
 				return;
 			}
-
-			setProfile(profileFromApi(payload?.profile));
-			setGoals(Array.isArray(payload?.goals) ? payload.goals : []);
-			setSuccess("Details saved. Choose your goal to generate a plan.");
+			setProfile(fromApi(body?.profile));
+			setGoals(Array.isArray(body?.goals) ? body.goals : []);
+			setNote("Saved. Pick a target below.");
 		} catch {
-			setError("Unable to save details.");
+			setError("Could not reach the studio.");
 		} finally {
-			setSavingProfile(false);
+			setSaving(false);
 		}
-	}
+	};
 
-	async function chooseGoal(goalId) {
-		setLoadingPlan(true);
+	const pickGoal = async (goalId) => {
+		setWorking(true);
 		setError("");
-		setSuccess("");
-
+		setNote("");
 		try {
 			const response = await fetch("/api/user/plan", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ goalId }),
 			});
-			const payload = await response.json();
-
+			const body = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				setError(payload?.error || "Unable to generate plan.");
+				setError(body?.error ?? "Could not work out a plan.");
 				return;
 			}
-
-			setSelectedGoal(String(payload?.selectedGoal ?? goalId));
-			setPlan(payload?.plan ?? null);
-			setGoals(Array.isArray(payload?.goals) ? payload.goals : goals);
-			setSuccess("Your plan is ready.");
+			setChosen(String(body?.selectedGoal ?? goalId));
+			setPlan(body?.plan ?? null);
+			if (Array.isArray(body?.goals)) setGoals(body.goals);
 		} catch {
-			setError("Unable to generate plan.");
+			setError("Could not reach the studio.");
 		} finally {
-			setLoadingPlan(false);
+			setWorking(false);
 		}
-	}
+	};
 
 	if (loading) {
 		return (
-			<section
-				className="dashboard-card goal-planner-card"
-				aria-label="Goal planner">
-				<h2>{title}</h2>
-				<p>Loading your saved details...</p>
-			</section>
+			<Panel title="Your numbers">
+				<Stamp>Reading your saved details</Stamp>
+			</Panel>
 		);
 	}
 
-	return (
-		<section
-			className="dashboard-card goal-planner-card"
-			aria-label="Goal planner">
-			<div className="goal-planner-head">
-				<h2>{title}</h2>
-				<p>{description}</p>
-			</div>
+	const ready = Boolean(profile.age && profile.heightCm && profile.weightKg);
 
-			<form className="goal-profile-form" onSubmit={saveProfile}>
-				<label>
-					Age
-					<input
-						type="number"
+	return (
+		<>
+			<Panel
+				title="Your numbers"
+				hint="Saved to your account only. Used to work out calories and a week's split."
+			>
+				<form className="grid gap-3 sm:grid-cols-2" onSubmit={saveProfile}>
+					<TextField
+						label="Age"
 						name="age"
+						type="number"
+						inputMode="numeric"
 						min="12"
 						max="100"
 						value={profile.age}
-						onChange={handleProfileChange}
+						onChange={edit}
 						required
 					/>
-				</label>
-				<label>
-					Height (cm)
-					<input
-						type="number"
+					<TextField
+						label="Height in cm"
 						name="heightCm"
+						type="number"
+						inputMode="numeric"
 						min="120"
 						max="230"
 						value={profile.heightCm}
-						onChange={handleProfileChange}
+						onChange={edit}
 						required
 					/>
-				</label>
-				<label>
-					Weight (kg)
-					<input
-						type="number"
+					<TextField
+						label="Weight in kg"
 						name="weightKg"
+						type="number"
+						inputMode="decimal"
 						min="30"
 						max="300"
 						step="0.1"
 						value={profile.weightKg}
-						onChange={handleProfileChange}
+						onChange={edit}
 						required
 					/>
-				</label>
-				<label>
-					Gender
-					<select
-						name="gender"
-						value={profile.gender}
-						onChange={handleProfileChange}>
-						{GENDERS.map((item) => (
-							<option key={item.value} value={item.value}>
-								{item.label}
+					<SelectField label="Gender" name="gender" value={profile.gender} onChange={edit}>
+						{GENDER.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
 							</option>
 						))}
-					</select>
-				</label>
-				<label>
-					Activity
-					<select
+					</SelectField>
+					<SelectField
+						label="How you live now"
 						name="activityLevel"
 						value={profile.activityLevel}
-						onChange={handleProfileChange}>
-						{ACTIVITY_LEVELS.map((item) => (
-							<option key={item.value} value={item.value}>
-								{item.label}
+						onChange={edit}
+					>
+						{ACTIVITY.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
 							</option>
 						))}
-					</select>
-				</label>
-				<label>
-					Training Days / week
-					<input
-						type="number"
+					</SelectField>
+					<TextField
+						label="Training days a week"
 						name="trainingDays"
+						type="number"
+						inputMode="numeric"
 						min="1"
 						max="7"
 						value={profile.trainingDays}
-						onChange={handleProfileChange}
+						onChange={edit}
 					/>
-				</label>
-				<label className="goal-wide-field">
-					Food preference
-					<input
-						type="text"
+					<TextField
+						label="Food you avoid or prefer"
 						name="dietaryPreference"
 						value={profile.dietaryPreference}
-						onChange={handleProfileChange}
-						placeholder="Example: vegetarian, high protein, no seafood"
+						onChange={edit}
+						placeholder="Vegetarian, high protein, no seafood"
+						className="sm:col-span-2"
 					/>
-				</label>
-				<button
-					type="submit"
-					className="btn primary goal-save-btn"
-					disabled={savingProfile}>
-					{savingProfile ? "Saving..." : "Save Details"}
-				</button>
-			</form>
 
-			{hasSavedProfile && goals.length > 0 ? (
-				<div className="goal-picker">
-					<h3>Choose your target</h3>
-					<div className="goal-options-grid">
-						{goals.map((goal) => (
-							<article
-								key={goal.id}
-								className={`goal-option-card ${selectedGoal === goal.id ? "active" : ""}`}>
-								<div className="goal-option-top">
-									<h4>{goal.title}</h4>
-									{goal.recommended ? (
-										<span className="role-badge user">Recommended</span>
-									) : null}
-								</div>
-								<p>{goal.description}</p>
-								<button
-									type="button"
-									className="btn secondary btn-small"
-									onClick={() => chooseGoal(goal.id)}
-									disabled={loadingPlan}>
-									{loadingPlan && selectedGoal !== goal.id
-										? "Generating..."
-										: "Pick Goal"}
-								</button>
-							</article>
-						))}
+					<div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2">
+						<Notice tone={error ? "error" : "good"}>{error || note}</Notice>
+						<Press type="submit" disabled={saving}>
+							{saving ? "Saving" : "Save my numbers"}
+						</Press>
 					</div>
-				</div>
+				</form>
+			</Panel>
+
+			{ready && goals.length ? (
+				<Panel title="Your target" hint="One at a time. Changing it rewrites the plan below.">
+					<ul className="grid gap-3 sm:grid-cols-2">
+						{goals.map((goal) => {
+							const live = goal.id === chosen;
+							return (
+								<li
+									key={goal.id}
+									className="flex flex-col gap-2 p-3"
+									style={{
+										border: live ? "1px solid var(--action)" : "1px solid var(--rail)",
+										backgroundColor: "var(--board)",
+									}}
+								>
+									<div className="flex flex-wrap items-baseline justify-between gap-2">
+										<span className="text-[0.86rem] font-bold uppercase tracking-[0.06em] text-tile">
+											{goal.title}
+										</span>
+										{goal.recommended ? <Stamp tone="action">Fits your numbers</Stamp> : null}
+									</div>
+									<p className="text-[0.78rem] leading-snug text-muted">{goal.description}</p>
+									<Press
+										tone={live ? "ghost" : "tile"}
+										size="sm"
+										full
+										className="mt-auto"
+										disabled={working || live}
+										onClick={() => pickGoal(goal.id)}
+									>
+										{live ? "This is your target" : working ? "Working" : "Aim at this"}
+									</Press>
+								</li>
+							);
+						})}
+					</ul>
+				</Panel>
 			) : null}
 
 			{plan ? (
-				<div className="goal-plan-output">
-					<div className="goal-plan-summary">
-						<h3>{plan.goalTitle} Plan</h3>
-						<p>{plan.overview}</p>
-						<ul className="dashboard-list">
-							<li>Duration: {plan.durationWeeks} weeks</li>
-							<li>Daily calories: {plan.dailyCalories} kcal</li>
-							<li>
-								Macros: P {plan.dailyMacros?.protein}g, C{" "}
-								{plan.dailyMacros?.carbs}g, F {plan.dailyMacros?.fat}g
-							</li>
-						</ul>
+				<Panel
+					title={`${plan.goalTitle} — the plan`}
+					hint="Worked out from the numbers you saved. A calculator, not a dietitian: ask a doctor before a big change."
+				>
+					<p className="max-w-measure text-[0.84rem] leading-relaxed text-tile">{plan.overview}</p>
+
+					<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+						<Readout label="Runs for" value={`${plan.durationWeeks} weeks`} className="tabular" />
+						<Readout label="A day" value={`${plan.dailyCalories} kcal`} className="tabular" />
+						<Readout
+							label="Protein · carbs · fat"
+							value={`${plan.dailyMacros?.protein ?? "—"} · ${plan.dailyMacros?.carbs ?? "—"} · ${plan.dailyMacros?.fat ?? "—"} g`}
+							className="tabular"
+						/>
+						<Readout label="Training days" value={profile.trainingDays} className="tabular" />
 					</div>
 
-					<div className="goal-plan-grid">
-						<article className="goal-plan-card">
-							<h4>Food Plan</h4>
-							<ul className="dashboard-list">
-								{Array.isArray(plan.nutritionPlan)
-									? plan.nutritionPlan.map((item) => <li key={item}>{item}</li>)
-									: null}
-							</ul>
-						</article>
-						<article className="goal-plan-card">
-							<h4>Workout Plan</h4>
-							<ul className="dashboard-list">
-								{Array.isArray(plan.trainingPlan)
-									? plan.trainingPlan.map((item) => <li key={item}>{item}</li>)
-									: null}
-							</ul>
-						</article>
-						<article className="goal-plan-card">
-							<h4>Daily Habits</h4>
-							<ul className="dashboard-list">
-								{Array.isArray(plan.habits)
-									? plan.habits.map((item) => <li key={item}>{item}</li>)
-									: null}
-							</ul>
-						</article>
+					<div className="grid gap-3 sm:grid-cols-3">
+						<PlanList title="Food" items={plan.nutritionPlan} />
+						<PlanList title="Training" items={plan.trainingPlan} />
+						<PlanList title="Daily habits" items={plan.habits} />
 					</div>
-				</div>
+				</Panel>
 			) : null}
-
-			{error ? <p className="calorie-error">{error}</p> : null}
-			{success ? <p className="goal-success">{success}</p> : null}
-		</section>
+		</>
 	);
 }

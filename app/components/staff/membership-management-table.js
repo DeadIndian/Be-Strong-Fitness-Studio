@@ -1,177 +1,171 @@
 "use client";
 
-import { useMemo, useState } from "react";
+/**
+ * Who is on what plan. One row per account: the plan and the standing on the
+ * left, the two controls that can change them on the right. Assigning a plan is
+ * the same act the member's own console performs, so it says the same thing —
+ * a term recorded, not a payment taken.
+ */
 
-function formatDate(value) {
-	if (!value) {
-		return "--";
-	}
+import { useState } from "react";
+import Panel, { Notice } from "../board/panel";
+import { Stamp } from "../board/tile-text";
 
+const STATUS_COLOR = {
+	active: "var(--action)",
+	paused: "var(--muted)",
+	cancelled: "#FF8A8F",
+	expired: "#FF8A8F",
+};
+
+function day(value) {
+	if (!value) return "—";
 	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) {
-		return "--";
-	}
-
-	return date.toLocaleDateString(undefined, {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
+	if (Number.isNaN(date.getTime())) return "—";
+	return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function statusBadgeClass(status) {
-	switch (status) {
-		case "active":
-			return "user";
-		case "paused":
-			return "staff";
-		case "cancelled":
-			return "staff";
-		case "expired":
-			return "staff";
-		default:
-			return "user";
-	}
-}
-
-export default function MembershipManagementTable({
-	initialUsers,
-	plans,
-	allowedStatus,
-}) {
+export default function MembershipManagementTable({ initialUsers, plans, allowedStatus }) {
 	const [users, setUsers] = useState(initialUsers);
-	const [busyUid, setBusyUid] = useState("");
-	const [message, setMessage] = useState("");
+	const [filter, setFilter] = useState("");
+	const [busy, setBusy] = useState("");
+	const [error, setError] = useState("");
+	const [note, setNote] = useState("");
 
-	const sortedUsers = useMemo(
-		() =>
-			[...users].sort((a, b) =>
-				String(a.email ?? "").localeCompare(String(b.email ?? "")),
-			),
-		[users],
-	);
-
-	async function updateMembership(uid, payload) {
-		setBusyUid(uid);
-		setMessage("");
+	const patch = async (uid, body) => {
+		setBusy(uid);
+		setError("");
+		setNote("");
 		try {
 			const response = await fetch("/api/staff/memberships", {
 				method: "PATCH",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ uid, ...payload }),
+				body: JSON.stringify({ uid, ...body }),
 			});
-			const data = await response.json();
-
+			const data = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				throw new Error(data?.error || "Update failed");
+				setError(data?.error ?? "Could not change that membership.");
+				return;
 			}
-
-			setUsers((prev) =>
-				prev.map((user) =>
+			setUsers((current) =>
+				current.map((user) =>
 					user.uid === uid
-						? {
-								...user,
-								membership: {
-									...(user.membership ?? {}),
-									...(data?.membership ?? {}),
-								},
-							}
+						? { ...user, membership: { ...(user.membership ?? {}), ...(data?.membership ?? {}) } }
 						: user,
 				),
 			);
-			setMessage("Membership updated.");
-		} catch (error) {
-			setMessage(error?.message || "Unable to update membership.");
+			setNote("Saved.");
+		} catch {
+			setError("Could not reach the studio database.");
 		} finally {
-			setBusyUid("");
+			setBusy("");
 		}
-	}
+	};
+
+	const term = filter.trim().toLowerCase();
+	const rows = [...users]
+		.sort((a, b) => String(a.email ?? "").localeCompare(String(b.email ?? "")))
+		.filter((user) =>
+			term ? `${user.email ?? ""} ${user.displayName ?? ""}`.toLowerCase().includes(term) : true,
+		);
+	const onPlan = users.filter((user) => user.membership?.status === "active").length;
 
 	return (
-		<div className="rbac-table-wrap">
-			{message ? <p className="auth-error muted">{message}</p> : null}
-			<table className="rbac-table">
-				<thead>
-					<tr>
-						<th>Email</th>
-						<th>Name</th>
-						<th>Role</th>
-						<th>Plan</th>
-						<th>Status</th>
-						<th>Expires</th>
-						<th>Action</th>
-					</tr>
-				</thead>
-				<tbody>
-					{sortedUsers.map((user) => {
-						const membership = user.membership ?? null;
-						const uidBusy = busyUid === user.uid;
+		<Panel
+			title={`${onPlan} of ${users.length} on a plan`}
+			hint="Assigning a plan starts its term today. Nothing here takes a payment."
+			actions={
+				users.length > 8 ? (
+					<input
+						className="board-input sm:w-56"
+						value={filter}
+						onChange={(event) => setFilter(event.target.value)}
+						placeholder="Find by email or name"
+						aria-label="Find a member"
+					/>
+				) : null
+			}
+		>
+			<Notice tone={error ? "error" : "good"}>{error || note}</Notice>
 
-						return (
-							<tr key={user.uid}>
-								<td>{user.email ?? "-"}</td>
-								<td>{user.displayName ?? "-"}</td>
-								<td>
-									<span className={`role-badge ${user.role}`}>{user.role}</span>
-								</td>
-								<td>{membership?.planTitle ?? "No plan"}</td>
-								<td>
-									<span
-										className={`role-badge ${statusBadgeClass(membership?.status)}`}>
-										{membership?.status ?? "none"}
-									</span>
-								</td>
-								<td>{formatDate(membership?.expiresAt)}</td>
-								<td>
-									<div className="staff-member-actions">
-										<select
-											disabled={uidBusy}
-											onChange={(event) => {
-												const planId = event.target.value;
-												if (planId) {
-													updateMembership(user.uid, {
-														planId,
-														status: "active",
-													});
-													event.target.value = "";
-												}
-											}}>
-											<option value="">Assign plan</option>
-											{plans.map((plan) => (
-												<option key={plan.id} value={plan.id}>
-													{plan.title}
-												</option>
-											))}
-										</select>
+			<ul className="flex flex-col gap-2">
+				{rows.map((user) => {
+					const membership = user.membership ?? null;
+					const working = busy === user.uid;
+					const status = membership?.status ?? "";
+					return (
+						<li
+							key={user.uid}
+							className="flex flex-col gap-3 p-3"
+							style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
+						>
+							<div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+								<span className="min-w-0 truncate text-[0.84rem] font-bold text-tile">
+									{user.email ?? "No email on the account"}
+								</span>
+								{user.role === "staff" ? <Stamp tone="action">Staff</Stamp> : null}
+							</div>
 
-										<select
-											disabled={uidBusy}
-											value={membership?.status ?? ""}
-											onChange={(event) =>
-												updateMembership(user.uid, {
-													status: event.target.value,
-												})
-											}>
-											<option value="" disabled>
-												Status
+							<div className="flex flex-wrap gap-x-6 gap-y-1">
+								<Stamp className="text-tile">{membership?.planTitle ?? "No plan"}</Stamp>
+								<span
+									className="text-[0.68rem] font-bold uppercase tracking-[0.22em]"
+									style={{ color: STATUS_COLOR[status] ?? "var(--muted)" }}
+								>
+									{status || "nothing recorded"}
+								</span>
+								<Stamp className="tabular">Runs to {day(membership?.expiresAt)}</Stamp>
+							</div>
+
+							<div className="flex flex-col gap-2 sm:flex-row">
+								<label className="flex flex-1 flex-col gap-1">
+									<Stamp>Put on a plan</Stamp>
+									<select
+										className="board-input"
+										disabled={working}
+										value=""
+										onChange={(event) => {
+											if (event.target.value) {
+												patch(user.uid, { planId: event.target.value, status: "active" });
+											}
+										}}
+									>
+										<option value="">
+											{membership?.planTitle ? "Change the term" : "Pick a term"}
+										</option>
+										{plans.map((plan) => (
+											<option key={plan.id} value={plan.id}>
+												{plan.title} — ₹{plan.priceInr}
 											</option>
-											{allowedStatus.map((status) => (
-												<option key={status} value={status}>
-													{status}
-												</option>
-											))}
-										</select>
+										))}
+									</select>
+								</label>
 
-										{uidBusy ? (
-											<span className="staff-saving">Saving...</span>
-										) : null}
-									</div>
-								</td>
-							</tr>
-						);
-					})}
-				</tbody>
-			</table>
-		</div>
+								<label className="flex flex-1 flex-col gap-1">
+									<Stamp>Standing</Stamp>
+									<select
+										className="board-input"
+										disabled={working || !membership?.planId}
+										value={status}
+										onChange={(event) => patch(user.uid, { status: event.target.value })}
+									>
+										{membership?.planId ? null : <option value="">No plan yet</option>}
+										{allowedStatus.map((option) => (
+											<option key={option} value={option}>
+												{option}
+											</option>
+										))}
+									</select>
+								</label>
+							</div>
+
+							{working ? <Stamp tone="action">Saving</Stamp> : null}
+						</li>
+					);
+				})}
+			</ul>
+
+			{!rows.length ? <Stamp>No account matches that</Stamp> : null}
+		</Panel>
 	);
 }
