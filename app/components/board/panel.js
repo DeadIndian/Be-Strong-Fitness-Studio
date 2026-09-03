@@ -1,21 +1,26 @@
 /**
- * A panel is a card on the board: brass edge, deep slot ground, a stamped title
- * and one optional control on the right. Every logged-in surface is built from
- * these, so the member console and the staff console are the same object.
+ * A panel is the working slab: the same glass object the landing page lays over
+ * the room, at desk density. One hairline edge, one lit top edge, a title band
+ * separated from its contents by the same hairline every rule on the site is
+ * drawn with — never a brass box inside a brass box.
+ *
+ * Every logged-in surface is built from these, so the member console and the
+ * owner's panel are the same object. Rows *inside* a panel are hairlines, not
+ * further containers: this is the only container level a work surface gets.
  */
 
-import { Stamp } from "./tile-text";
-
 export default function Panel({ title, hint, actions = null, children, className = "" }) {
+	const banded = Boolean(title || hint || actions);
 	return (
-		<section
-			className={`flex flex-col gap-4 p-3 sm:p-4 ${className}`}
-			style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board-deep)" }}
-		>
-			{title || actions || hint ? (
-				<div className="flex flex-wrap items-start justify-between gap-3">
-					<div className="flex flex-col gap-1">
-						{title ? <Stamp tone="action">{title}</Stamp> : null}
+		<section className={`slab flex flex-col ${className}`}>
+			{banded ? (
+				<div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-edge px-4 py-3.5 sm:px-5">
+					<div className="flex min-w-0 flex-col gap-1.5">
+						{title ? (
+							<h2 className="text-[0.9rem] font-bold uppercase leading-none tracking-[0.12em] text-tile [font-stretch:80%] sm:text-[1.05rem]">
+								{title}
+							</h2>
+						) : null}
 						{hint ? (
 							<p className="max-w-measure text-[0.78rem] leading-snug text-muted">{hint}</p>
 						) : null}
@@ -23,7 +28,7 @@ export default function Panel({ title, hint, actions = null, children, className
 					{actions}
 				</div>
 			) : null}
-			{children}
+			<div className="flex flex-col gap-4 p-4 sm:p-5">{children}</div>
 		</section>
 	);
 }
@@ -31,9 +36,13 @@ export default function Panel({ title, hint, actions = null, children, className
 /** A label and its value, lined up in a column of them. */
 export function Readout({ label, value, className = "" }) {
 	return (
-		<div className={`flex flex-col gap-0.5 ${className}`}>
-			<Stamp>{label}</Stamp>
-			<span className="tabular text-[0.9rem] font-bold text-tile">{value}</span>
+		<div className={`flex flex-col gap-1 ${className}`}>
+			<span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-muted">
+				{label}
+			</span>
+			<span className="text-[1rem] font-bold uppercase leading-none tracking-[0.01em] text-tile [font-stretch:82%]">
+				{value}
+			</span>
 		</div>
 	);
 }
@@ -41,14 +50,30 @@ export function Readout({ label, value, className = "" }) {
 /** The one place a surface says something went wrong or landed. */
 export function Notice({ tone = "info", children }) {
 	if (!children) return null;
-	const color = tone === "error" ? "#FF8A8F" : tone === "good" ? "var(--action)" : "var(--muted)";
+	const color = tone === "error" ? "text-warn" : tone === "good" ? "text-action" : "text-muted";
 	return (
 		<p
 			role={tone === "error" ? "alert" : "status"}
-			className="text-[0.8rem] font-bold uppercase tracking-[0.12em]"
-			style={{ color }}
+			className={`text-[0.78rem] font-bold uppercase tracking-[0.12em] ${color}`}
 		>
 			{children}
 		</p>
+	);
+}
+
+/**
+ * A quiet aside inside a panel: a fact the reader needs before acting, set off
+ * by one lit hairline down its left rather than by a second box.
+ */
+export function Aside({ title, children }) {
+	return (
+		<div className="flex flex-col gap-1.5 border-l border-edge-lit pl-3.5">
+			{title ? (
+				<span className="text-[0.66rem] font-bold uppercase tracking-[0.2em] text-action">
+					{title}
+				</span>
+			) : null}
+			<p className="max-w-measure text-[0.82rem] leading-relaxed text-tile">{children}</p>
+		</div>
 	);
 }

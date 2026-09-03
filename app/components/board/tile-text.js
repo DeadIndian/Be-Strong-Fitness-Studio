@@ -1,7 +1,7 @@
 /**
- * Pressed letter tiles in a slot rail. The tile is the layout unit of the whole
- * site: narrow viewports get a smaller tile and fewer tiles per row, never a
- * different composition. Screen readers get the whole word, not the letters.
+ * A run of letters set as tiles. The tile is the layout unit of the whole site:
+ * narrow viewports get a smaller tile and fewer tiles per row, never a different
+ * composition. Screen readers get the whole word, not the letters.
  */
 
 export function TileText({
@@ -73,20 +73,9 @@ export function EmptySlots({ count = 8, label, className = "" }) {
 	);
 }
 
-/** The brass rail every run of tiles is seated in. */
-export function Rail({ children, className = "", as: Tag = "div" }) {
-	return (
-		<Tag
-			className={`slot-rail flex min-h-rail items-center gap-3 px-3 sm:px-5 ${className}`}
-		>
-			{children}
-		</Tag>
-	);
-}
-
 /** A small stamped caption in the board's own voice: not a kicker above a heading. */
-export function Stamp({ children, className = "", tone = "rail" }) {
-	const color = tone === "action" ? "text-action" : tone === "tile" ? "text-tile" : "text-rail";
+export function Stamp({ children, className = "", tone = "muted" }) {
+	const color = tone === "action" ? "text-action" : tone === "tile" ? "text-tile" : "text-muted";
 	return (
 		<span
 			className={`inline-block text-[0.68rem] font-bold uppercase tracking-[0.22em] ${color} ${className}`}

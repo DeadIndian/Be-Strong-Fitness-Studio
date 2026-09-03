@@ -5,13 +5,15 @@
  * the state, so the band showing what you hold and the rows offering a term can
  * never disagree with each other.
  *
- * While checkout is a placeholder, every word here says so. The control records
- * a plan; it does not claim to have taken money.
+ * The rows are the landing board's ledger lines at desk density — same face,
+ * same price, one hairline between terms — with a single control under each.
+ * While checkout is a placeholder, every word here says so: the control records
+ * a plan, it does not claim to have taken money.
  */
 
-import Panel, { Notice } from "../board/panel";
+import Panel, { Aside, Notice } from "../board/panel";
 import Press from "../board/press";
-import RateRow from "../board/rate-row";
+import PlanFace from "../board/rate-row";
 import { Stamp } from "../board/tile-text";
 
 /** What the one control on a row may say, given what the member already holds. */
@@ -60,46 +62,35 @@ export default function MembershipDesk({
 			hint="Same room, same equipment, same hours on every term. Only the length changes."
 		>
 			{placeholder ? (
-				<div
-					className="flex flex-col gap-1 p-3"
-					style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
-				>
-					<Stamp tone="action">No card is charged in this app</Stamp>
-					<p className="max-w-measure text-[0.82rem] leading-relaxed text-tile">
-						Taking a term here records it on your account so the studio can see it. The app takes
-						no payment.
-						{payNote ? ` ${payNote}` : ""}
-					</p>
-				</div>
+				<Aside title="No card is charged in this app">
+					Taking a term here records it on your account so the studio can see it. The app takes no
+					payment.
+					{payNote ? ` ${payNote}` : ""}
+				</Aside>
 			) : null}
 
-			<ul className="flex flex-col gap-3">
+			<ul className="flex flex-col">
 				{terms.map((plan) => {
 					const control = controlFor(plan, membership, busyPlan);
 					const held = membership?.planId === plan.id;
 					return (
 						<li
 							key={plan.id}
-							className="flex flex-col"
-							style={{
-								border: held ? "1px solid var(--action)" : "1px solid var(--rail)",
-								backgroundColor: "var(--board)",
-							}}
+							className="flex flex-col gap-3 border-t border-edge py-4 first:border-t-0 first:pt-0 last:pb-0"
 						>
-							<RateRow plan={plan} />
-
-							<div className="flex flex-col gap-3 px-3 pb-3 pt-2 sm:px-4">
-								<p className="text-[0.78rem] leading-snug text-muted">
-									Runs {plan.durationMonths} {plan.durationMonths === 1 ? "month" : "months"} from
-									the day you take it.
-									{plan.perks?.length ? ` Includes ${plan.perks.join(" and ")}.` : ""}
-								</p>
+							<PlanFace plan={plan} />
+							<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+								{held ? (
+									<span className="text-[0.66rem] font-bold uppercase tracking-[0.2em] text-action">
+										The term you hold
+									</span>
+								) : null}
 								<Press
 									tone={control.tone}
 									size="md"
-									full
 									disabled={control.disabled}
 									onClick={() => onActivate(plan.id)}
+									className="w-full sm:ml-auto sm:w-auto"
 								>
 									{control.label}
 								</Press>
@@ -110,8 +101,8 @@ export default function MembershipDesk({
 			</ul>
 
 			<p className="max-w-measure text-[0.78rem] leading-relaxed text-muted">
-				A member already on a plan keeps the price they were sold. Moving to another term starts
-				that term from today.
+				A term runs from the day you take it. A member already on a plan keeps the price they were
+				sold; moving to another term starts that term from today.
 			</p>
 		</Panel>
 	);

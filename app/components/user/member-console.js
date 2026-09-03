@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import Panel, { Notice, Readout } from "../board/panel";
+import { Notice, Readout } from "../board/panel";
 import Tabs from "../board/tabs";
 import { Stamp, TileText } from "../board/tile-text";
 import CalorieCalculator from "./calorie-calculator";
@@ -31,8 +31,8 @@ const SECTIONS = [
 const STATUS_COLOR = {
 	active: "var(--action)",
 	paused: "var(--muted)",
-	cancelled: "#FF8A8F",
-	expired: "#FF8A8F",
+	cancelled: "var(--warn)",
+	expired: "var(--warn)",
 };
 
 function day(value) {
@@ -112,24 +112,22 @@ export default function MemberConsole({ displayName, placeholder = true, payNote
 
 	return (
 		<div className="mx-auto w-full max-w-board px-3 py-8 sm:px-6">
-			<header className="flex flex-col gap-3">
-				<Stamp tone="action">Your membership</Stamp>
-				<TileText as="h1" text={displayName.toUpperCase()} className="tile-md" />
-			</header>
+			<TileText as="h1" text={displayName.toUpperCase()} className="tile-md" />
 
-			<div
-				className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-4 p-3 sm:p-4"
-				style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board-deep)" }}
-			>
+			{/* What you hold, on one rule under your name — the standing of the account
+			    is a fact to read at a glance, not a card to look at. */}
+			<div className="mt-5 flex flex-wrap items-baseline gap-x-8 gap-y-4 border-y border-edge py-4">
 				{loading ? (
 					<Stamp>Reading your account</Stamp>
 				) : membership?.planTitle ? (
 					<>
 						<Readout label="Plan" value={membership.planTitle} />
-						<div className="flex flex-col gap-0.5">
-							<Stamp>Standing</Stamp>
+						<div className="flex flex-col gap-1">
+							<span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-muted">
+								Standing
+							</span>
 							<span
-								className="text-[0.9rem] font-bold uppercase tracking-[0.12em]"
+								className="text-[1rem] font-bold uppercase leading-none tracking-[0.01em] [font-stretch:82%]"
 								style={{ color: STATUS_COLOR[status] ?? "var(--tile)" }}
 							>
 								{status || "unknown"}
@@ -143,11 +141,11 @@ export default function MemberConsole({ displayName, placeholder = true, payNote
 						/>
 					</>
 				) : (
-					<div className="flex flex-col gap-1">
+					<div className="flex flex-col gap-1.5">
 						<Stamp>No plan yet</Stamp>
 						<p className="max-w-measure text-[0.82rem] leading-snug text-tile">
-							Pick a term below. Every plan is the same room, the same equipment and the same
-							hours — only the length differs.
+							Pick a term below. Every plan is the same room, the same equipment and the same hours
+							— only the length differs.
 						</p>
 					</div>
 				)}
@@ -182,12 +180,11 @@ export default function MemberConsole({ displayName, placeholder = true, payNote
 				{section === "reviews" ? <ReviewsPanel /> : null}
 			</div>
 
-			<Panel className="mt-6">
-				<p className="max-w-measure text-[0.8rem] leading-relaxed text-muted">
-					Anything in here wrong? Ask at the desk — the studio edits its own rates, hours and
-					details, so a correction does not wait on a developer.
-				</p>
-			</Panel>
+			<hr className="hair mt-8" />
+			<p className="mt-4 max-w-measure text-[0.8rem] leading-relaxed text-muted">
+				Anything in here wrong? Ask at the desk — the studio edits its own rates, hours and details,
+				so a correction does not wait on a developer.
+			</p>
 		</div>
 	);
 }

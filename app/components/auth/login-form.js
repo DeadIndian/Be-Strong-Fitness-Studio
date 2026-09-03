@@ -155,22 +155,22 @@ export default function LoginForm({ brand }) {
 	return (
 		<div className="mx-auto grid w-full max-w-board items-start gap-8 px-3 py-10 sm:px-6 lg:min-h-[calc(100dvh-var(--rail-height))] lg:grid-cols-[1fr_26rem] lg:items-center lg:gap-12 lg:py-16">
 			<div className="flex flex-col gap-5">
-				<Stamp tone="action">Members only past this point</Stamp>
 				<TileText as="h1" text={brand.shortName} className="tile-lg" press />
 				<p className="max-w-measure text-[0.92rem] leading-relaxed text-tile">
 					An account is where your plan, its dates and your own training numbers live. It is the
 					only way to take a membership term in the app.
 				</p>
-				<ul className="flex flex-col gap-2">
+				<ul className="flex flex-col">
 					{[
 						"Take a term and see the day it runs to",
 						"Save your numbers, get calories and a week's split",
 						"Look up any exercise and how it is done",
 					].map((line) => (
-						<li key={line} className="flex gap-2 text-[0.84rem] leading-snug text-muted">
-							<span aria-hidden="true" className="text-rail">
-								/
-							</span>
+						<li
+							key={line}
+							className="flex items-center gap-3 border-t border-edge py-2.5 text-[0.84rem] leading-snug text-muted"
+						>
+							<span aria-hidden="true" className="h-[0.3rem] w-[0.3rem] flex-none rotate-45 bg-action" />
 							{line}
 						</li>
 					))}
@@ -181,6 +181,8 @@ export default function LoginForm({ brand }) {
 			</div>
 
 			<Panel>
+				{/* The tab hairline runs the full width of the slab, so the strip reads as
+				    part of the panel's own edge rather than a control floating inside it. */}
 				<Tabs
 					label="Sign in or join"
 					items={MODES}
@@ -189,6 +191,7 @@ export default function LoginForm({ brand }) {
 						setMode(next);
 						clear();
 					}}
+					className="-mx-4 -mt-4 px-4 sm:-mx-5 sm:-mt-5 sm:px-5"
 				/>
 
 				<Press tone="tile" size="md" full disabled={Boolean(busy)} onClick={google}>
@@ -196,9 +199,9 @@ export default function LoginForm({ brand }) {
 				</Press>
 
 				<div className="flex items-center gap-3">
-					<span aria-hidden="true" className="h-px flex-1" style={{ backgroundColor: "var(--rail)" }} />
+					<span aria-hidden="true" className="h-px flex-1 bg-edge" />
 					<Stamp>or with an email</Stamp>
-					<span aria-hidden="true" className="h-px flex-1" style={{ backgroundColor: "var(--rail)" }} />
+					<span aria-hidden="true" className="h-px flex-1 bg-edge" />
 				</div>
 
 				<form onSubmit={submit} className="flex flex-col gap-4" noValidate>

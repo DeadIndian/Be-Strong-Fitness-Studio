@@ -96,24 +96,20 @@ export default function WorkoutFinder() {
 				<Stamp>Nothing under that name</Stamp>
 			) : null}
 
-			<ul className="grid gap-3 sm:grid-cols-2">
+			<ul className="grid gap-x-5 gap-y-6 sm:grid-cols-2">
 				{results.map((exercise) => (
-					<li
-						key={exercise.id}
-						className="flex flex-col"
-						style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
-					>
+					<li key={exercise.id} className="flex flex-col gap-2.5">
 						{exercise.gifUrl ? (
 							// eslint-disable-next-line @next/next/no-img-element -- third-party GIF, no loader config
 							<img
 								src={exercise.gifUrl}
 								alt={`${exercise.name} demonstration`}
 								loading="lazy"
-								className="aspect-[4/3] w-full bg-[color:var(--board-deep)] object-contain"
+								className="aspect-[4/3] w-full border border-edge bg-[color:var(--board-deep)] object-contain"
 							/>
 						) : null}
 
-						<div className="flex flex-1 flex-col gap-2 p-3">
+						<div className="flex flex-1 flex-col gap-2">
 							<div className="flex flex-wrap items-baseline justify-between gap-2">
 								<span className="text-[0.86rem] font-bold uppercase leading-tight tracking-[0.06em] text-tile">
 									{exercise.name}

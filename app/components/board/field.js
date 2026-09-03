@@ -10,20 +10,13 @@
 
 import { Stamp } from "./tile-text";
 
-// Errors keep one fixed red whatever palette the owner picks: a warning the
-// theme could tint into the background is not a warning.
-const ERROR_INK = "#FF8A8F";
-
 export function Field({ label, hint, error, children, className = "" }) {
 	return (
 		<label className={`flex flex-col gap-1.5 ${className}`}>
 			{label ? <Stamp tone="tile">{label}</Stamp> : null}
 			{children}
 			{error ? (
-				<span
-					className="text-[0.72rem] font-bold uppercase tracking-[0.14em]"
-					style={{ color: ERROR_INK }}
-				>
+				<span className="text-[0.72rem] font-bold uppercase tracking-[0.14em] text-warn">
 					{error}
 				</span>
 			) : hint ? (

@@ -11,12 +11,12 @@
 
 import Link from "next/link";
 import { readViewer } from "@/lib/auth/viewer";
-import { hasVisitInfo, plateColor } from "@/lib/site/defaults";
+import { hasVisitInfo } from "@/lib/site/defaults";
 import { toMinutes } from "@/lib/site/hours.mjs";
 import { getSiteSettings } from "@/lib/site/settings";
 import OpenNow from "./components/board/open-now";
 import Press from "./components/board/press";
-import { perMonth } from "./components/board/rate-row";
+import PlanFace, { Plate, perMonth } from "./components/board/rate-row";
 import ResultCard from "./components/board/result-card";
 import { Stamp, TileText } from "./components/board/tile-text";
 import FacilityRack from "./components/landing/facility-rack";
@@ -71,59 +71,21 @@ function Band({ id, title, aside = null, children = null, bleed = null }) {
 	);
 }
 
-/** The plate that stands for this plan, in the colour the rig carries on its hub. */
-function Plate({ kg, className = "" }) {
-	const colour = plateColor(kg);
-	return (
-		<span
-			aria-hidden="true"
-			className={`h-2.5 w-2.5 flex-none rounded-full sm:h-3 sm:w-3 ${className}`}
-			style={{
-				backgroundColor: colour,
-				boxShadow: `0 0 0 1px rgba(0,0,0,0.55), 0 0 1rem color-mix(in srgb, ${colour} 55%, transparent)`,
-			}}
-		/>
-	);
-}
-
 /**
  * One priced term as a line in a ledger. The whole line is the target — on a
  * phone that is a 76px-tall tap area, not a button hunted for at the end of a
- * row — the price is the biggest thing on it because price is what the visitor
- * came to read, and reaching for it floods the line with light from the left
- * rather than drawing a box around it.
+ * row — and reaching for it floods the line with light from the left rather
+ * than drawing a box around it. The face itself is shared with the member's
+ * desk, so the price reads the same in both places.
  */
 function PlanLine({ plan, href, signedIn }) {
-	const months = Number(plan.durationMonths) || 1;
 	return (
 		<Link
 			href={href}
 			aria-label={`${plan.title}, ₹${plan.priceInr} — ${signedIn ? "take this term" : "sign in to take this term"}`}
 			className="ledger group block py-5 sm:py-7"
 		>
-			<span className="relative flex items-baseline gap-3 sm:gap-5">
-				<Plate kg={plan.plate} />
-				<span className="flex min-w-0 flex-1 flex-col gap-1.5">
-					<TileText text={plan.title} className="tile-sm" />
-					<span className="tabular text-[0.68rem] uppercase leading-snug tracking-[0.16em] text-muted">
-						{months} {months === 1 ? "month" : "months"}
-						{plan.perks?.length ? ` · ${plan.perks.join(" · ")}` : ""}
-					</span>
-				</span>
-				<span className="flex flex-none flex-col items-end gap-1.5">
-					<span className="flex items-baseline">
-						<span aria-hidden="true" className="pr-1 text-[0.8rem] font-bold text-muted sm:text-[1rem]">
-							₹
-						</span>
-						<span className="tabular text-[2.1rem] font-extrabold leading-[0.8] tracking-[-0.04em] text-tile transition-colors duration-200 [font-stretch:76%] group-hover:text-action sm:text-[3.1rem]">
-							{plan.priceInr.toLocaleString("en-IN")}
-						</span>
-					</span>
-					<span className="tabular text-[0.66rem] uppercase tracking-[0.16em] text-muted">
-						₹{perMonth(plan).toLocaleString("en-IN")} a month
-					</span>
-				</span>
-			</span>
+			<PlanFace plan={plan} />
 		</Link>
 	);
 }

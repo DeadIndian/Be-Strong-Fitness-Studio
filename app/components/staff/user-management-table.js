@@ -12,15 +12,14 @@ import Panel, { Notice } from "../board/panel";
 import Press from "../board/press";
 import { Stamp } from "../board/tile-text";
 
+/** What an account may do, said in one word rather than drawn as a chip. */
 function RoleStamp({ role }) {
 	const staff = role === "staff";
 	return (
 		<span
-			className="inline-flex min-h-[1.6rem] items-center px-2 text-[0.66rem] font-bold uppercase tracking-[0.18em]"
-			style={{
-				border: `1px solid ${staff ? "var(--action)" : "var(--rail)"}`,
-				color: staff ? "var(--action)" : "var(--muted)",
-			}}
+			className={`flex-none text-[0.66rem] font-bold uppercase tracking-[0.18em] sm:w-20 ${
+				staff ? "text-action" : "text-muted"
+			}`}
 		>
 			{staff ? "Staff" : "Member"}
 		</span>
@@ -112,15 +111,14 @@ export default function UserManagementTable({ initialUsers, currentUid }) {
 		>
 			<Notice tone={error ? "error" : "good"}>{error || note}</Notice>
 
-			<ul className="flex flex-col gap-2">
+			<ul className="flex flex-col">
 				{rows.map((user) => {
 					const self = user.uid === currentUid;
 					const working = busy === user.uid;
 					return (
 						<li
 							key={user.uid}
-							className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4"
-							style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
+							className="flex flex-col gap-3 border-t border-edge py-3.5 first:border-t-0 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4"
 						>
 							<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 								<span className="truncate text-[0.84rem] font-bold text-tile">
@@ -165,7 +163,9 @@ export default function UserManagementTable({ initialUsers, currentUid }) {
 
 			<dialog ref={confirm} className="board-dialog" aria-label="Delete this account">
 				<div className="flex flex-col gap-4 p-4">
-					<Stamp tone="action">Delete an account</Stamp>
+					<h2 className="text-[0.95rem] font-bold uppercase leading-none tracking-[0.12em] text-tile [font-stretch:80%]">
+						Delete an account
+					</h2>
 					<p className="text-[0.86rem] leading-relaxed text-tile">
 						{pendingDelete?.email ?? "This account"} will be removed: the sign-in and the
 						membership record on it both go. This cannot be undone.

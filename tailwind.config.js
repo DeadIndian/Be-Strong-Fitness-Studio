@@ -13,6 +13,8 @@ module.exports = {
 				accent: "var(--accent)",
 				muted: "var(--muted)",
 				edge: "var(--edge)",
+				"edge-lit": "var(--edge-lit)",
+				warn: "var(--warn)",
 			},
 			fontFamily: {
 				board: ["var(--font-board)", "ui-sans-serif", "system-ui", "sans-serif"],

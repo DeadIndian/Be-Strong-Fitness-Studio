@@ -40,7 +40,7 @@ function Score({ value }) {
 					className="h-[0.7rem] w-[0.7rem] flex-none rounded-full"
 					style={{
 						backgroundColor: step <= score ? "var(--action)" : "transparent",
-						border: "1px solid var(--rail)",
+						border: "1px solid var(--edge)",
 					}}
 				/>
 			))}
@@ -122,10 +122,10 @@ export default function ReviewsPanel() {
 							return (
 								<label
 									key={option.value}
-									className="flex min-h-[2.75rem] cursor-pointer items-center gap-2 px-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[color:var(--action)]"
+									className="flex min-h-[2.75rem] cursor-pointer items-center gap-2 border px-3 transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[color:var(--action)]"
 									style={{
-										border: live ? "1px solid var(--action)" : "1px solid var(--rail)",
-										backgroundColor: live ? "var(--board)" : "transparent",
+										borderColor: live ? "var(--action)" : "var(--edge)",
+										backgroundColor: live ? "rgba(255,255,255,0.04)" : "transparent",
 									}}
 								>
 									<input
@@ -175,7 +175,8 @@ export default function ReviewsPanel() {
 				</div>
 			</form>
 
-			<div className="flex flex-col gap-3">
+			{/* What members wrote, one to a line: the wall, not a stack of cards. */}
+			<div className="flex flex-col">
 				{loading ? <Stamp>Reading the wall</Stamp> : null}
 				{!loading && !reviews.length ? (
 					<Stamp>Nothing written yet — yours would be the first</Stamp>
@@ -184,8 +185,7 @@ export default function ReviewsPanel() {
 				{reviews.map((review) => (
 					<article
 						key={review.id}
-						className="flex flex-col gap-1.5 p-3"
-						style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
+						className="flex flex-col gap-1.5 border-t border-edge py-3.5 first:border-t-0 first:pt-0"
 					>
 						<div className="flex flex-wrap items-center justify-between gap-2">
 							<span className="text-[0.8rem] font-bold uppercase tracking-[0.1em] text-tile">

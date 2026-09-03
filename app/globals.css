@@ -19,6 +19,13 @@
 	--accent: #ff3b3b;
 	--muted: #a0a0a0;
 
+	/*
+	 * Warnings keep one fixed red whatever palette the owner picks: a warning the
+	 * theme could tint into the background is not a warning. Outside the injected
+	 * theme on purpose — the admin panel cannot edit this one.
+	 */
+	--warn: #ff8a8f;
+
 	/* Derived, never edited: glass and glow follow whatever palette is injected. */
 	--glass: color-mix(in srgb, var(--board) 62%, transparent);
 	--edge: color-mix(in srgb, var(--tile) 12%, transparent);

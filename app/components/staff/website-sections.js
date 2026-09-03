@@ -16,33 +16,18 @@ import { inlineImage } from "@/lib/site/image";
 import { safeMapEmbed } from "@/lib/site/sanitize";
 import BoardImage from "../board/board-image";
 import { ColorField, Field, SelectField, TextField } from "../board/field";
+import Panel from "../board/panel";
 import Press from "../board/press";
 import { Stamp, TileText } from "../board/tile-text";
 
-function Card({ title, hint, children, actions = null }) {
-	return (
-		<section
-			className="flex flex-col gap-4 p-3 sm:p-4"
-			style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board-deep)" }}
-		>
-			<div className="flex flex-wrap items-start justify-between gap-3">
-				<div className="flex flex-col gap-1">
-					<Stamp tone="action">{title}</Stamp>
-					{hint ? (
-						<p className="max-w-measure text-[0.76rem] leading-snug text-muted">{hint}</p>
-					) : null}
-				</div>
-				{actions}
-			</div>
-			{children}
-		</section>
-	);
-}
-
-/** A row in a list the owner can grow: the delete sits with the row, not below it. */
+/**
+ * A row in a list the owner can grow: one hairline above it, the delete sitting
+ * with the row rather than below it. Not a box — the panel is the only container
+ * this surface gets.
+ */
 function Row({ title, onRemove, removeLabel, children }) {
 	return (
-		<div className="flex flex-col gap-3 p-3" style={{ border: "1px solid var(--rail)" }}>
+		<div className="flex flex-col gap-3 border-t border-edge pt-3.5">
 			<div className="flex items-center justify-between gap-3">
 				<Stamp tone="tile">{title}</Stamp>
 				<Press tone="ghost" size="sm" onClick={onRemove}>
@@ -84,10 +69,7 @@ function ImagePicker({ label, value, onChange, maxEdge = 480, aspect = "aspect-[
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="flex flex-wrap items-start gap-3">
-				<div
-					className={`relative w-24 flex-none overflow-hidden ${aspect}`}
-					style={{ border: "1px solid var(--rail)" }}
-				>
+				<div className={`relative w-24 flex-none overflow-hidden border border-edge ${aspect}`}>
 					<BoardImage src={value} alt="" sizes="6rem" />
 				</div>
 				<div className="flex min-w-[12rem] flex-1 flex-col gap-2">
@@ -123,12 +105,12 @@ function StorageMeter({ used, budget }) {
 		<div className="flex flex-col gap-1.5">
 			<Stamp>{`Uploaded photos: ${percent}% of the space used`}</Stamp>
 			<span
-				className="block h-2 w-full max-w-[22rem]"
-				style={{ backgroundColor: "rgba(0,0,0,0.45)", border: "1px solid var(--rail)" }}
+				className="block h-2 w-full max-w-[22rem] border border-edge"
+				style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
 			>
 				<span
 					className="block h-full"
-					style={{ width: `${percent}%`, backgroundColor: percent > 85 ? "#C9282D" : "var(--action)" }}
+					style={{ width: `${percent}%`, backgroundColor: percent > 85 ? "var(--warn)" : "var(--action)" }}
 				/>
 			</span>
 			{percent > 85 ? (
@@ -155,7 +137,7 @@ export function BrandSection({ draft, set, used, budget }) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<Card title="The studio's name" hint="Used in the top rail, the page title and the footer.">
+			<Panel title="The studio's name" hint="Used in the top rail, the page title and the footer.">
 				<div className="grid gap-4 sm:grid-cols-2">
 					<TextField
 						label="Full name"
@@ -174,9 +156,9 @@ export function BrandSection({ draft, set, used, budget }) {
 					value={draft.brand.line}
 					onChange={(event) => set(["brand", "line"], event.target.value)}
 				/>
-			</Card>
+			</Panel>
 
-			<Card title="Logo" hint="A square image reads best. It sits next to the name in the top rail.">
+			<Panel title="Logo" hint="A square image reads best. It sits next to the name in the top rail.">
 				<ImagePicker
 					label="Upload a logo"
 					value={draft.brand.logoUrl}
@@ -185,9 +167,9 @@ export function BrandSection({ draft, set, used, budget }) {
 					onChange={(value) => set(["brand", "logoUrl"], value)}
 				/>
 				<StorageMeter used={used} budget={budget} />
-			</Card>
+			</Panel>
 
-			<Card
+			<Panel
 				title="Colour scheme"
 				hint="Every page follows these seven colours. Keep the tiles light and the text on them dark, or the lettering gets hard to read."
 				actions={
@@ -206,10 +188,11 @@ export function BrandSection({ draft, set, used, budget }) {
 						/>
 					))}
 				</div>
+				{/* The one legitimate box on this surface: it is a picture of another
+				    surface. Its tokens are the draft's, so the hairline retints with them. */}
 				<div
-					className="flex flex-col gap-3 p-3"
+					className="flex flex-col gap-3 border border-edge p-3"
 					style={{
-						border: "1px solid var(--rail)",
 						"--board": theme.board,
 						"--board-deep": theme.boardDeep,
 						"--tile": theme.tile,
@@ -220,14 +203,16 @@ export function BrandSection({ draft, set, used, budget }) {
 						backgroundColor: "var(--board)",
 					}}
 				>
-					<Stamp tone="action">How it looks</Stamp>
+					<span className="text-[0.66rem] font-bold uppercase tracking-[0.2em] text-action">
+						How it looks
+					</span>
 					<TileText text={draft.brand.shortName || "BE STRONG"} className="tile-sm" />
 					<p className="text-[0.8rem] text-muted">Secondary text sits at this weight.</p>
 					<Press size="sm" className="self-start">
 						Main button
 					</Press>
 				</div>
-			</Card>
+			</Panel>
 		</div>
 	);
 }
@@ -239,7 +224,7 @@ export function ContactSection({ draft, set }) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<Card
+			<Panel
 				title="How people reach the studio"
 				hint="Leave anything blank and the website simply does not show it. Nothing is invented."
 			>
@@ -285,9 +270,9 @@ export function ContactSection({ draft, set }) {
 						)
 					}
 				/>
-			</Card>
+			</Panel>
 
-			<Card
+			<Panel
 				title="Map"
 				hint={'In Google Maps: find the studio, press Share, then Embed a map, then copy the link inside src="…".'}
 			>
@@ -299,10 +284,7 @@ export function ContactSection({ draft, set }) {
 					onChange={(event) => set(["contact", "mapEmbedUrl"], event.target.value)}
 				/>
 				{mapSafe ? (
-					<div
-						className="aspect-[4/3] w-full max-w-[28rem] overflow-hidden"
-						style={{ border: "1px solid var(--rail)" }}
-					>
+					<div className="aspect-[4/3] w-full max-w-[28rem] overflow-hidden border border-edge">
 						<iframe
 							src={mapSafe}
 							title="Map preview"
@@ -320,7 +302,7 @@ export function ContactSection({ draft, set }) {
 					value={contact.mapLinkUrl}
 					onChange={(event) => set(["contact", "mapLinkUrl"], event.target.value)}
 				/>
-			</Card>
+			</Panel>
 		</div>
 	);
 }
@@ -341,7 +323,7 @@ export function HoursSection({ draft, set }) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<Card
+			<Panel
 				title="The week"
 				hint="A day with no window is shown as closed. Add a second window for a morning and evening split."
 				actions={
@@ -354,11 +336,14 @@ export function HoursSection({ draft, set }) {
 					</Press>
 				}
 			>
-				<ul className="flex flex-col gap-3">
+				<ul className="flex flex-col">
 					{week.map((row) => {
 						const closed = row.ranges.length === 0;
 						return (
-							<li key={row.day} className="flex flex-col gap-3 p-3" style={{ border: "1px solid var(--rail)" }}>
+							<li
+								key={row.day}
+								className="flex flex-col gap-3 border-t border-edge py-3.5 first:border-t-0 first:pt-0 last:pb-0"
+							>
 								<div className="flex flex-wrap items-center justify-between gap-3">
 									<Stamp tone="tile">{row.label}</Stamp>
 									<label className="flex items-center gap-2 text-[0.74rem] font-bold uppercase tracking-[0.14em] text-muted">
@@ -433,9 +418,9 @@ export function HoursSection({ draft, set }) {
 						);
 					})}
 				</ul>
-			</Card>
+			</Panel>
 
-			<Card title="Clock" hint="The open-now lamp reads the studio's own clock, not the visitor's.">
+			<Panel title="Clock" hint="The open-now lamp reads the studio's own clock, not the visitor's.">
 				<div className="grid gap-4 sm:grid-cols-2">
 					<TextField
 						label="Timezone"
@@ -450,7 +435,7 @@ export function HoursSection({ draft, set }) {
 						onChange={(event) => set(["hours", "note"], event.target.value)}
 					/>
 				</div>
-			</Card>
+			</Panel>
 		</div>
 	);
 }
@@ -461,7 +446,7 @@ export function RatesSection({ draft, set }) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<Card
+			<Panel
 				title="What a membership costs"
 				hint="These are the rows on the front of the site and the plans a member can activate. A member already on a plan keeps the price they were sold."
 				actions={
@@ -489,7 +474,7 @@ export function RatesSection({ draft, set }) {
 					</Press>
 				}
 			>
-				<ul className="flex flex-col gap-3">
+				<ul className="flex flex-col gap-4">
 					{plans.map((plan, index) => (
 						<li key={plan.id ?? index}>
 							<Row
@@ -541,10 +526,10 @@ export function RatesSection({ draft, set }) {
 										</SelectField>
 										<span
 											aria-hidden="true"
-											className="mb-[1.6rem] h-8 w-8 flex-none rounded-full shadow-tile"
+											className="mb-[1.6rem] h-8 w-8 flex-none rounded-full"
 											style={{
 												backgroundColor: plateColor(Number(plan.plate ?? 5)),
-												border: "1px solid rgba(0,0,0,0.35)",
+												boxShadow: `0 0 0 1px rgba(0,0,0,0.55), 0 0 1.25rem color-mix(in srgb, ${plateColor(Number(plan.plate ?? 5))} 45%, transparent)`,
 											}}
 										/>
 									</div>
@@ -566,9 +551,9 @@ export function RatesSection({ draft, set }) {
 						</li>
 					))}
 				</ul>
-			</Card>
+			</Panel>
 
-			<Card
+			<Panel
 				title="House rules"
 				hint="The short rules shown beside the rates: one label, one sentence."
 				actions={
@@ -583,7 +568,7 @@ export function RatesSection({ draft, set }) {
 					</Press>
 				}
 			>
-				<ul className="flex flex-col gap-3">
+				<ul className="flex flex-col gap-4">
 					{rules.map((rule, index) => (
 						<li key={rule.id ?? index}>
 							<Row
@@ -606,9 +591,9 @@ export function RatesSection({ draft, set }) {
 						</li>
 					))}
 				</ul>
-			</Card>
+			</Panel>
 
-			<Card
+			<Panel
 				title="How members pay"
 				hint="The app never takes money: pressing a plan only records the term on the member's account. Write here how you actually want to be paid, and the member sees it beside every plan."
 			>
@@ -622,7 +607,7 @@ export function RatesSection({ draft, set }) {
 					value={draft.checkout?.note ?? ""}
 					onChange={(event) => set(["checkout", "note"], event.target.value)}
 				/>
-			</Card>
+			</Panel>
 		</div>
 	);
 }
@@ -631,7 +616,7 @@ export function FacilitiesSection({ draft, set, used, budget }) {
 	const facilities = draft.facilities;
 
 	return (
-		<Card
+		<Panel
 			title="What's in the room"
 			hint="The cards visitors scroll through. Order here is the order on the site."
 			actions={
@@ -647,7 +632,7 @@ export function FacilitiesSection({ draft, set, used, budget }) {
 			}
 		>
 			<StorageMeter used={used} budget={budget} />
-			<ul className="grid gap-3 lg:grid-cols-2">
+			<ul className="flex flex-col gap-4">
 				{facilities.map((facility, index) => (
 					<li key={facility.id ?? index}>
 						<Row
@@ -668,7 +653,7 @@ export function FacilitiesSection({ draft, set, used, budget }) {
 					</li>
 				))}
 			</ul>
-		</Card>
+		</Panel>
 	);
 }
 
@@ -676,7 +661,7 @@ export function ResultsSection({ draft, set, used, budget }) {
 	const results = draft.results;
 
 	return (
-		<Card
+		<Panel
 			title="Member results"
 			hint="Anything ticked as a sample is labelled Sample on the website. Untick it only for a real member who agreed to be shown."
 			actions={
@@ -698,7 +683,7 @@ export function ResultsSection({ draft, set, used, budget }) {
 			}
 		>
 			<StorageMeter used={used} budget={budget} />
-			<ul className="grid gap-3 lg:grid-cols-2">
+			<ul className="flex flex-col gap-4">
 				{results.map((result, index) => (
 					<li key={result.id ?? index}>
 						<Row
@@ -748,6 +733,6 @@ export function ResultsSection({ draft, set, used, budget }) {
 					</li>
 				))}
 			</ul>
-		</Card>
+		</Panel>
 	);
 }

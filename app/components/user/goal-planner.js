@@ -53,17 +53,15 @@ function fromApi(profile) {
 function PlanList({ title, items }) {
 	if (!Array.isArray(items) || !items.length) return null;
 	return (
-		<div
-			className="flex flex-col gap-2 p-3"
-			style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
-		>
-			<Stamp tone="action">{title}</Stamp>
+		<div className="flex flex-col gap-2 border-t border-edge pt-3">
+			<span className="text-[0.66rem] font-bold uppercase tracking-[0.2em] text-action">{title}</span>
 			<ul className="flex flex-col gap-1.5">
 				{items.map((item) => (
-					<li key={item} className="flex gap-2 text-[0.8rem] leading-snug text-tile">
-						<span aria-hidden="true" className="text-rail">
-							/
-						</span>
+					<li key={item} className="flex gap-2.5 text-[0.8rem] leading-snug text-tile">
+						<span
+							aria-hidden="true"
+							className="mt-[0.42em] h-[0.3rem] w-[0.3rem] flex-none rotate-45 bg-action"
+						/>
 						{item}
 					</li>
 				))}
@@ -266,30 +264,35 @@ export default function GoalPlanner() {
 
 			{ready && goals.length ? (
 				<Panel title="Your target" hint="One at a time. Changing it rewrites the plan below.">
-					<ul className="grid gap-3 sm:grid-cols-2">
+					<ul className="flex flex-col">
 						{goals.map((goal) => {
 							const live = goal.id === chosen;
 							return (
 								<li
 									key={goal.id}
-									className="flex flex-col gap-2 p-3"
-									style={{
-										border: live ? "1px solid var(--action)" : "1px solid var(--rail)",
-										backgroundColor: "var(--board)",
-									}}
+									className="flex flex-col gap-2 border-t border-edge py-4 first:border-t-0 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-6"
 								>
-									<div className="flex flex-wrap items-baseline justify-between gap-2">
-										<span className="text-[0.86rem] font-bold uppercase tracking-[0.06em] text-tile">
-											{goal.title}
+									<div className="flex min-w-0 flex-1 flex-col gap-1.5">
+										<span className="flex items-center gap-2.5">
+											{live ? (
+												<span
+													aria-hidden="true"
+													className="h-[0.3rem] w-[0.3rem] flex-none rotate-45 bg-action"
+												/>
+											) : null}
+											<span className="text-[0.86rem] font-bold uppercase tracking-[0.06em] text-tile">
+												{goal.title}
+											</span>
+											{goal.recommended ? <Stamp tone="action">Fits your numbers</Stamp> : null}
 										</span>
-										{goal.recommended ? <Stamp tone="action">Fits your numbers</Stamp> : null}
+										<p className="max-w-measure text-[0.78rem] leading-snug text-muted">
+											{goal.description}
+										</p>
 									</div>
-									<p className="text-[0.78rem] leading-snug text-muted">{goal.description}</p>
 									<Press
 										tone={live ? "ghost" : "tile"}
 										size="sm"
-										full
-										className="mt-auto"
+										className="w-full flex-none sm:w-auto"
 										disabled={working || live}
 										onClick={() => pickGoal(goal.id)}
 									>

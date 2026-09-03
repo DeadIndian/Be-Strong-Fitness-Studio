@@ -28,7 +28,6 @@ export default async function ResultsPage() {
 	return (
 		<main id="board-main" className="mx-auto flex w-full max-w-board flex-col gap-8 px-3 py-10 sm:px-6 sm:py-16">
 			<header className="flex flex-col gap-3">
-				<Stamp tone="action">Member results</Stamp>
 				<PressText as="h1" text="RESULTS" className="tile-md" />
 				<p className="max-w-measure text-[0.9rem] leading-relaxed text-muted">
 					{results.length
@@ -56,10 +55,7 @@ export default async function ResultsPage() {
 					))}
 				</ul>
 			) : (
-				<div
-					className="flex flex-col items-start gap-3 p-4"
-					style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board-deep)" }}
-				>
+				<div className="flex flex-col items-start gap-3 border-y border-edge py-6">
 					<EmptySlots count={7} label="No results on the board yet" />
 					<p className="max-w-measure text-[0.84rem] leading-relaxed text-muted">
 						Nothing to show here yet. The room, the terms and the hours are all on the board.

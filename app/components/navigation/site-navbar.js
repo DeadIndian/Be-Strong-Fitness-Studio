@@ -158,7 +158,7 @@ export default function SiteNavbar({ settings, session = null }) {
 								key={link.href}
 								href={link.href}
 								onClick={close}
-								className="flex min-h-[3.25rem] items-center justify-between gap-3 border-b border-b-[color:color-mix(in_srgb,var(--rail)_28%,transparent)] px-4 text-[0.82rem] font-bold uppercase tracking-[0.18em] text-tile"
+								className="flex min-h-[3.25rem] items-center justify-between gap-3 border-b border-edge px-4 text-[0.82rem] font-bold uppercase tracking-[0.18em] text-tile"
 							>
 								{link.label}
 								<span
@@ -169,7 +169,7 @@ export default function SiteNavbar({ settings, session = null }) {
 						))}
 					</nav>
 
-					<div className="flex flex-col gap-3 border-t border-t-[color:var(--rail)] p-4">
+					<div className="flex flex-col gap-3 border-t border-edge p-4">
 						<OpenNow hours={settings.hours} />
 						<Press href={action.href} size="lg" full onClick={close}>
 							{action.label}

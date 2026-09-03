@@ -14,8 +14,8 @@ import { Stamp } from "../board/tile-text";
 const STATUS_COLOR = {
 	active: "var(--action)",
 	paused: "var(--muted)",
-	cancelled: "#FF8A8F",
-	expired: "#FF8A8F",
+	cancelled: "var(--warn)",
+	expired: "var(--warn)",
 };
 
 function day(value) {
@@ -88,7 +88,7 @@ export default function MembershipManagementTable({ initialUsers, plans, allowed
 		>
 			<Notice tone={error ? "error" : "good"}>{error || note}</Notice>
 
-			<ul className="flex flex-col gap-2">
+			<ul className="flex flex-col">
 				{rows.map((user) => {
 					const membership = user.membership ?? null;
 					const working = busy === user.uid;
@@ -96,8 +96,7 @@ export default function MembershipManagementTable({ initialUsers, plans, allowed
 					return (
 						<li
 							key={user.uid}
-							className="flex flex-col gap-3 p-3"
-							style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board)" }}
+							className="flex flex-col gap-3 border-t border-edge py-4 first:border-t-0 first:pt-0 last:pb-0"
 						>
 							<div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
 								<span className="min-w-0 truncate text-[0.84rem] font-bold text-tile">

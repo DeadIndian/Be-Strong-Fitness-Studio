@@ -82,10 +82,7 @@ export default function CalorieCalculator() {
 
 			{item ? (
 				<div className="flex flex-col gap-4 sm:flex-row">
-					<div
-						className="relative aspect-square w-full overflow-hidden sm:w-40 sm:flex-none"
-						style={{ border: "1px solid var(--rail)" }}
-					>
+					<div className="relative aspect-square w-full overflow-hidden border border-edge sm:w-40 sm:flex-none">
 						<BoardImage
 							src={item.image}
 							alt={item.name}
@@ -94,8 +91,10 @@ export default function CalorieCalculator() {
 					</div>
 
 					<div className="flex min-w-0 flex-1 flex-col gap-3">
-						<div className="flex flex-col gap-1">
-							<Stamp tone="action">{item.name}</Stamp>
+						<div className="flex flex-col gap-1.5">
+							<span className="text-[1rem] font-bold uppercase leading-none tracking-[0.01em] text-tile [font-stretch:82%]">
+								{item.name}
+							</span>
 							<p className="text-[0.78rem] leading-snug text-muted">
 								{item.servingBasis}
 								{item.source ? ` · numbers from ${item.source}` : ""}

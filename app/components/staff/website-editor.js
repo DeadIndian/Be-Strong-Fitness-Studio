@@ -10,9 +10,10 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { INLINE_BUDGET, inlineBytes } from "@/lib/site/image";
+import { Aside } from "../board/panel";
 import Press from "../board/press";
 import Tabs from "../board/tabs";
-import { Stamp, TileText } from "../board/tile-text";
+import { TileText } from "../board/tile-text";
 import {
 	BrandSection,
 	ContactSection,
@@ -86,24 +87,19 @@ export default function WebsiteEditor({ initial, gaps = [] }) {
 	return (
 		<div className="mx-auto w-full max-w-board px-3 pb-32 pt-8 sm:px-6 sm:pb-28">
 			<header className="flex flex-col gap-3">
-				<Stamp tone="action">Everything the public site says</Stamp>
 				<TileText as="h1" text="WEBSITE" className="tile-md" />
 				<p className="max-w-measure text-[0.88rem] leading-relaxed text-muted">
-					Change a name, a price, a photo or the whole colour scheme. Nothing is live until you
-					press Save.
+					Everything the public site says. Change a name, a price, a photo or the whole colour
+					scheme. Nothing is live until you press Save.
 				</p>
 			</header>
 
 			{gaps.length ? (
-				<div
-					className="mt-6 flex flex-col gap-1 p-3"
-					style={{ border: "1px solid var(--rail)", backgroundColor: "var(--board-deep)" }}
-				>
-					<Stamp tone="action">Still missing</Stamp>
-					<p className="text-[0.82rem] leading-relaxed text-tile">
-						{gaps.join(" · ")}. Until these are filled in, the website leaves those parts out
-						rather than making something up.
-					</p>
+				<div className="mt-6">
+					<Aside title="Still missing">
+						{gaps.join(" · ")}. Until these are filled in, the website leaves those parts out rather
+						than making something up.
+					</Aside>
 				</div>
 			) : null}
 
@@ -120,29 +116,29 @@ export default function WebsiteEditor({ initial, gaps = [] }) {
 			</div>
 
 			{dirty || error || note ? (
-				<div className="fixed inset-x-0 bottom-0 z-30 border-t" style={{ borderColor: "var(--rail)" }}>
-					<div className="slot-rail px-3 py-3 sm:px-6">
-						<div className="mx-auto flex max-w-board flex-wrap items-center justify-between gap-3">
-							<p className="text-[0.76rem] leading-snug text-tile">
-								{error ? (
-									<span style={{ color: "#FF8A8F" }}>{error}</span>
-								) : dirty ? (
-									"Unsaved changes."
-								) : (
-									note
-								)}
-							</p>
-							{dirty ? (
-								<span className="flex flex-wrap items-center gap-2">
-									<Press tone="ghost" size="sm" onClick={() => setDraft(saved)} disabled={busy}>
-										Discard
-									</Press>
-									<Press size="sm" onClick={save} disabled={busy}>
-										{busy ? "Saving" : "Save changes"}
-									</Press>
-								</span>
-							) : null}
-						</div>
+				// The save bar is the site's rail again, at the bottom of the window: its
+				// own lit top edge is the only line it needs.
+				<div className="slot-rail fixed inset-x-0 bottom-0 z-30 px-3 py-3 sm:px-6">
+					<div className="mx-auto flex max-w-board flex-wrap items-center justify-between gap-3">
+						<p className="text-[0.76rem] leading-snug text-tile">
+							{error ? (
+								<span className="font-bold uppercase tracking-[0.12em] text-warn">{error}</span>
+							) : dirty ? (
+								"Unsaved changes."
+							) : (
+								note
+							)}
+						</p>
+						{dirty ? (
+							<span className="flex flex-wrap items-center gap-2">
+								<Press tone="ghost" size="sm" onClick={() => setDraft(saved)} disabled={busy}>
+									Discard
+								</Press>
+								<Press size="sm" onClick={save} disabled={busy}>
+									{busy ? "Saving" : "Save changes"}
+								</Press>
+							</span>
+						) : null}
 					</div>
 				</div>
 			) : null}
