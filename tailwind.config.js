@@ -23,6 +23,9 @@ module.exports = {
 				tile: "var(--tile-size)",
 				rail: "var(--rail-height)",
 				gutter: "var(--gutter)",
+				// The lane he works in, and the type column's padding that keeps it clear.
+				lane: "var(--lane)",
+				column: "calc(var(--gutter) + var(--lane))",
 			},
 			maxWidth: {
 				board: "84rem",

@@ -34,6 +34,14 @@
 	--tile-size: clamp(1.4rem, 5.4vw, 2.6rem);
 	--rail-height: clamp(2.75rem, 9vw, 3.5rem);
 	--gutter: clamp(1rem, 4vw, 2.5rem);
+
+	/*
+	 * The lane he works in, kept clear of type on every floor. On a phone it is a
+	 * narrow strip beside the column; on a wide screen it is a quarter of the board.
+	 * The rig never reads this value — it measures the column that this padding
+	 * creates — so the two cannot drift apart.
+	 */
+	--lane: clamp(4.5rem, 22vw, 24rem);
 }
 
 @layer base {
@@ -42,6 +50,14 @@
 		/* The rail is sticky, so an anchored section must stop below it. */
 		scroll-padding-top: calc(var(--rail-height) + 0.75rem);
 		-webkit-text-size-adjust: 100%;
+		/*
+		 * One floor per rest position. `proximity`, never `mandatory`: a mandatory snap
+		 * cannot be scrolled *inside*, so at 200% zoom a floor taller than the viewport
+		 * would have unreachable content and fail WCAG 1.4.10. Proximity lets a
+		 * deliberate scroll settle where the reader put it and still lands the casual
+		 * flick on a hairline.
+		 */
+		scroll-snap-type: y proximity;
 	}
 
 	body {
@@ -218,68 +234,6 @@
 		color: color-mix(in srgb, var(--tile) 7%, transparent);
 	}
 
-	/*
-	 * The wall strip: one line of the studio's own words running the width of the
-	 * room, the way it would be painted above a rack. Two identical tracks travel
-	 * a full width each, so the loop has no seam and no JS.
-	 */
-	.marquee {
-		display: flex;
-		overflow: hidden;
-		user-select: none;
-	}
-
-	.marquee-track {
-		display: flex;
-		flex: none;
-		align-items: center;
-		gap: 3rem;
-		padding-right: 3rem;
-		animation: marquee 42s linear infinite;
-		will-change: transform;
-	}
-
-	/*
-	 * Where the browser can drive an animation from scroll, the strip travels as
-	 * the band passes rather than on a clock: it moves because the visitor moved,
-	 * and parks the moment they stop reading. The timed loop above is the fallback.
-	 */
-	@supports (animation-timeline: view()) {
-		@media (prefers-reduced-motion: no-preference) {
-			.marquee-track {
-				animation: marquee linear both;
-				animation-timeline: view();
-				animation-range: cover 0% cover 100%;
-			}
-		}
-	}
-
-	@keyframes marquee {
-		to {
-			transform: translateX(-100%);
-		}
-	}
-
-	/*
-	 * A rail that runs off the right edge of the window instead of stopping at a
-	 * border: the first frame lines up with the type column, the rest carry on past
-	 * the room. This is the whole reason the photographs are not in cards.
-	 */
-	.strip {
-		display: flex;
-		overflow-x: auto;
-		scroll-snap-type: x mandatory;
-		/* The first frame lines up with the type column at any window width. */
-		padding-left: max(var(--gutter), calc((100% - 84rem) / 2 + var(--gutter)));
-		padding-right: var(--gutter);
-		scrollbar-width: thin;
-	}
-
-	.strip > * {
-		scroll-snap-align: start;
-		flex: none;
-	}
-
 	/* One character of a run. Bare glyph: the type is the object, not a tile. */
 	.letter-tile {
 		display: inline-block;
@@ -294,6 +248,21 @@
 		line-height: 0.9;
 		letter-spacing: -0.02em;
 		flex: none;
+	}
+
+	/*
+	 * The corridor, and the only thing in the site that the rig moves directly.
+	 * `--push` is the distance this one object steps aside, written once per fall;
+	 * `--open` is how far the corridor is open, written per frame. Both default to
+	 * nothing, so an object with no rig behind it never moves and the whole
+	 * mechanism costs one composited transform.
+	 *
+	 * A letter and a whole priced row are the same object here on purpose: he
+	 * displaces the page, not just its lettering.
+	 */
+	.letter-tile,
+	.shove {
+		transform: translateX(calc(var(--push, 0px) * var(--open, 0)));
 	}
 
 	/* At wall scale the voice narrows further and the tracking closes up. */
@@ -508,13 +477,40 @@
 		}
 	}
 
+	/*
+	 * The horizontal slack is not decoration: a heading that parts pushes its letters
+	 * outside the box the wipe would otherwise clip them to, and they would vanish at
+	 * the edge of their own reveal. The clip runs a viewport wide on both sides.
+	 */
 	@keyframes wipe {
 		from {
-			clip-path: inset(0 100% 0 0);
+			clip-path: inset(0 100% 0 -100vw);
 		}
 		to {
-			clip-path: inset(0 0 0 0);
+			clip-path: inset(0 -100vw 0 -100vw);
 		}
+	}
+
+	/*
+	 * A storey. Each one is a snap position, so a flick settles on a hairline and he
+	 * lands rather than hangs mid-shaft. `scroll-snap-stop: always` is what stops one
+	 * hard flick from skipping two floors, and two falls, at once.
+	 */
+	.floor {
+		position: relative;
+		scroll-snap-align: start;
+		scroll-snap-stop: always;
+	}
+
+	/* The hairline between storeys: the slab he stands on and pushes off. */
+	.floor + .floor,
+	.floor + footer {
+		border-top: 1px solid var(--edge);
+	}
+
+	/* Inside a storey, sections still divide — they just are not slabs. */
+	.floor > section + section {
+		border-top: 1px solid var(--edge);
 	}
 
 	/* One hairline, lit at the left where the strip light starts. */

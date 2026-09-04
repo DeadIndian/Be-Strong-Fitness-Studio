@@ -1,7 +1,8 @@
 /**
- * The whole results wall. The board's RESULTS section shows the first few; this
- * page shows every row the studio has entered, from the same settings and in the
- * same card, so nothing here is a second version of the same claim.
+ * The results wall. The landing board does not carry results at all — a gym with none yet
+ * has nothing to put there, and an empty section on the way down the building is worse than
+ * no section — so this page is the whole of it: every row the studio has entered, straight
+ * from settings, and an honest empty state until there is one.
  */
 
 import { readViewer } from "@/lib/auth/viewer";

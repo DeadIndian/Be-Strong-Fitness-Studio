@@ -66,7 +66,7 @@ export default function HoursBand({ hours, className = "" }) {
 					return (
 						<li
 							key={run.from}
-							className="flex flex-col gap-1 border-t border-edge py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8 sm:py-5"
+							className="shove flex flex-col gap-1 border-t border-edge py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8 sm:py-5"
 						>
 							<span className="flex items-center gap-3">
 								<span

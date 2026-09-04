@@ -1,16 +1,17 @@
 "use client";
 
 /**
- * Whether the visitor gets the rig at all, decided before three.js is fetched:
- * no WebGL means no download and no canvas, reduced motion means one still
- * frame, otherwise the scroll drives it. The page's own ground stays behind it,
- * so a visitor with none of this reads a finished page rather than a broken one.
+ * Whether the visitor gets the building at all, decided before three.js is fetched: no
+ * WebGL means no download and no canvas, reduced motion means the still elevation, and a
+ * phone that cannot hold the frame rate falls back to that same still mid-visit. The
+ * page's own ground stays behind all three, so a visitor with none of it reads a finished
+ * page rather than a broken one.
  */
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-const Rig = dynamic(() => import("./rig"), { ssr: false });
+const Building = dynamic(() => import("./building"), { ssr: false });
 
 function canRender() {
 	try {
@@ -24,7 +25,7 @@ function canRender() {
 	}
 }
 
-export default function RigStage({ plates, scrollTarget }) {
+export default function Stage({ plates }) {
 	const [mode, setMode] = useState("off");
 	const [ready, setReady] = useState(false);
 
@@ -32,6 +33,10 @@ export default function RigStage({ plates, scrollTarget }) {
 		if (!canRender()) return;
 		setMode(window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "still" : "live");
 	}, []);
+
+	// Both are stable: `building.js` rebuilds its whole renderer when a prop changes.
+	const onReady = useCallback(() => setReady(true), []);
+	const onSlow = useCallback(() => setMode("still"), []);
 
 	if (mode === "off") return null;
 
@@ -41,11 +46,11 @@ export default function RigStage({ plates, scrollTarget }) {
 			className="pointer-events-none fixed inset-0 -z-10 transition-opacity duration-700 ease-press"
 			style={{ opacity: ready ? 1 : 0 }}
 		>
-			<Rig
+			<Building
 				plates={plates}
-				scrollTarget={scrollTarget}
 				still={mode === "still"}
-				onReady={() => setReady(true)}
+				onReady={onReady}
+				onSlow={onSlow}
 			/>
 		</div>
 	);

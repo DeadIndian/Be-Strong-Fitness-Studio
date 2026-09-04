@@ -78,7 +78,7 @@ function ImagePicker({ label, value, onChange, maxEdge = 480, aspect = "aspect-[
 					</Field>
 					<TextField
 						label="Or a path or link"
-						placeholder="/facilities/cardio.jpg"
+						placeholder="https://… or /your-photo.jpg"
 						value={String(value ?? "").startsWith("data:") ? "" : (value ?? "")}
 						onChange={(event) => onChange(event.target.value)}
 						hint={

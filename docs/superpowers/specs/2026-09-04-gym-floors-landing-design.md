@@ -181,15 +181,25 @@ Two things that will break if they are not built in from the start:
 
 **The invariant.** `measure.js` reads each floor's `border-top` offset — via a
 `ResizeObserver` on `#board-main`, so owner edits, font swap and image loads all
-re-trigger it — and `shaft.mjs` builds a **piecewise-linear map from page-y to
-world-y, with a knot at every hairline and exactly one storey between knots.**
-Camera y is that map applied to the viewport centre.
+re-trigger it — and the page maps to the world through **one constant: `world y = -k ×
+page y`.**  Camera y is that map applied to the viewport centre; camera distance is
+`k × viewportHeight / (2 tan(fov/2))`, which is exactly the distance at which one world
+unit projects to `1/k` pixels.
 
-The consequence: a canvas slab placed at floor *i*'s world y projects onto that
-floor's hairline exactly, at every scroll position, every window size, any content
-height. The floors are not tuned to line up; they cannot fail to. This also removes
-the `at: 0.16, 0.33…` fractions in `rig.js` that silently desynchronise the camera
-the moment the owner adds a sixth plan.
+The consequence: a canvas slab placed at floor *i*'s world y projects onto that floor's
+hairline exactly, at every scroll position, every window size, any content height. The
+floors are not tuned to line up; they cannot fail to. This also removes the
+`at: 0.16, 0.33…` fractions in `rig.js` that silently desynchronise the camera the moment
+the owner adds a sixth plan.
+
+A piecewise-linear map with a knot at every hairline and one storey between knots was the
+earlier plan and is dropped. Its per-floor slope means the world-to-pixel scale changes at
+every knot, so the camera distance has to be re-derived per floor and filtered across the
+join to avoid a visible step-zoom — and while that filter is settling, the slabs are not
+exact. The linear map has no knots to cross, so it is exact everywhere and needs no filter.
+The cost is that storey height in world units is no longer uniform: a floor the owner makes
+taller is a taller room, and his fall through it is longer. That is the correct reading of
+"the page is the building".
 
 **He descends monotonically, one storey per section; the camera descends at the
 page's rate.** While he works, the two move together and he holds a stable height on
@@ -241,17 +251,20 @@ The slab-on-hairline invariant pins the world-to-pixel scale, so the `fit` pull-
 rule in `rig.js` does not survive — it is replaced by one knob that does the same job
 properly.
 
-**Storey height sets his size.** Slabs are one storey apart in world space and one
-floor apart in pixels, so his on-screen height is fixed at `MAN_H / storeyUnits` of a
-floor. A taller storey on a narrow screen shrinks him:
+**Storey height sets his size.** He is a fixed share of the viewport, and `k` follows from
+that share: `k = MAN_H / (share × viewportHeight)` world units per pixel, so one viewport
+of scroll is one storey of building.
 
 | | Aspect | Storey | He is | Pixels (w × h) |
 |---|---|---|---|---|
 | Phone portrait, 360×800 | 0.45 | 10 units (5 m) | 35% of frame | ~72 × 280 |
 | Desktop, 1440×900 | 1.6 | 6 units (3 m) | 58% of frame | ~133 × 522 |
 
-One derived number responding to aspect. No per-breakpoint composition. Camera FOV
-stays 32°, as `rig.js` has it.
+`share` interpolates linearly between those two aspects, so it is one derived number and
+there is no per-breakpoint composition. Camera FOV stays 32°, as `rig.js` has it. Camera
+distance comes out around 17 units on a phone against 10.5 on a desktop, so `rig.js`'s
+fixed `Fog(5, 22)` is re-expressed as a multiple of that distance or he fogs out on the
+phone.
 
 **His lane.** `Band` gets a floor variant constraining type to the left ~65% and
 reserving the right ~35%. This also resolves a collision: `Band` currently places its
@@ -317,12 +330,14 @@ Letter transforms are decorative and on `aria-hidden` elements. Ledger rows keep
 
 Two pure modules get `node:test` files beside them, matching `lib/site/hours.test.mjs`:
 
-- **`body.test.mjs`** — hips travel down before they travel up in the jump clip; no joint
+- **`body.mjs`** — hips travel down before they travel up in the jump clip; no joint
   exceeds its anatomical limit; every looping clip ends where it started, so reps do not
   pop.
-- **`shaft.test.mjs`** — the page-to-world map is monotone; every knot lands exactly on
-  its hairline; out-of-range input clamps. This is the invariant the whole design rests
-  on, so it gets a test rather than a comment.
+- **`shaft.mjs`** — the projection identity holds: one world unit is exactly `1/k` pixels at
+  the derived camera distance, so a slab lands on its hairline. Fall bands for adjacent
+  floors a viewport apart do not overlap. The corridor's slack guard keeps every pushed
+  letter inside its column. This is the invariant the whole design rests on, so it gets
+  tests rather than a comment.
 
 Manual checks, both of which fail at exactly one size:
 

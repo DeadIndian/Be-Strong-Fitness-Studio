@@ -20,7 +20,7 @@ function publicLinks(settings) {
 		{ label: "Rates", href: "/#rates" },
 		{ label: "The room", href: "/#room" },
 		{ label: "Hours", href: "/#hours" },
-		{ label: "Results", href: "/#results" },
+		{ label: "Results", href: "/transformations" },
 	];
 	// No link to a section with nothing in it yet.
 	if (hasVisitInfo(settings?.contact)) links.push({ label: "Visit", href: "/#visit" });
