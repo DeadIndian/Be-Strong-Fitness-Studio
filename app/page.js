@@ -1,34 +1,42 @@
 /**
- * The landing page: five storeys of a building the visitor scrolls down, with one man
- * working his way to the bottom of it. `Stage` mounts the rig behind everything; this file
- * is the page it reads, and the page reads perfectly well without it.
+ * The landing page: one gym hall seen from the side, five stations wide, with one
+ * man in it. This file is the hall's own signage — the whole of it, complete and
+ * readable with no canvas, no JavaScript and no WebGL. That is the artefact; the
+ * rig is only what it is lit by.
  *
- * Two rules hold the whole thing together. Nothing is invented: every fact printed here
- * comes from settings, and anything the owner has not supplied is left off rather than
- * filled with a plausible-looking sample. And nothing is a card: the type sits directly on
- * the room, a hairline runs the width of the window between sections, and a priced term is
- * a line in a ledger.
+ * Content is in walk-in order, which is the order a prospect's questions actually
+ * arrive: is it open, what can I train on, what else is included, what do I get
+ * afterwards, what does it cost. Price is last on purpose — nobody walks into a
+ * gym and asks the price first.
  *
- * Structure the rig depends on, and which therefore must not drift:
- *   · exactly five `<Floor>` wrappers plus the ground footer, in this order, whatever the
- *     owner has or has not filled in — `STATIONS` in `building.js` is a fixed list of five
- *     and a floor that appears only when `contact` is set would leave him standing on air;
- *   · one `.parting` heading per floor below the first, being the line his fall goes
- *     through;
- *   · `.shove` on every row he is meant to displace on his way past.
+ * Two rules hold it together. Nothing is invented: every fact printed here comes
+ * from settings, and anything the owner has not supplied is either left off or
+ * said plainly to be missing, never filled with a plausible-looking sample. And
+ * nothing is a card: the type sits directly on the room, one hairline separates a
+ * row from the next, and a priced term is a line in a ledger.
+ *
+ * Structure the rig reads, and which therefore must not drift:
+ *   · exactly five `<section data-station="1..5">`, in this order, whatever the
+ *     owner has or has not filled in — the hall is five stations wide, and a
+ *     station that appeared only when its data did would leave him nowhere to
+ *     stand;
+ *   · `data-flow` on prose he re-breaks around himself, which must therefore hold
+ *     text and nothing else;
+ *   · `data-yield` on the rows and controls he steps aside;
+ *   · `data-plate="<plan-id>"` on each priced row, being its plate on the tree.
  */
 
 import Link from "next/link";
 import { readViewer } from "@/lib/auth/viewer";
-import { hasVisitInfo } from "@/lib/site/defaults";
+import { facilitiesIn, hasVisitInfo } from "@/lib/site/defaults";
 import { toMinutes } from "@/lib/site/hours.mjs";
 import { getSiteSettings } from "@/lib/site/settings";
 import OpenNow from "./components/board/open-now";
 import Press from "./components/board/press";
 import PlanFace, { perMonth } from "./components/board/rate-row";
 import { Stamp, TileText } from "./components/board/tile-text";
-import HoursBand from "./components/landing/hours-band";
-import Stage from "./components/landing/stage";
+import HoursStrip, { DoorLine } from "./components/gym/hours-strip";
+import Room from "./components/gym/room";
 
 /** The three things that happen after the press, in the order they happen. */
 const JOIN_STEPS = [
@@ -38,9 +46,9 @@ const JOIN_STEPS = [
 ];
 
 /**
- * Hours the doors are open in a week, added up from the owner's own table. A computed
- * figure, so it cannot drift from the hours printed further down the page and it cannot be
- * a claim nobody checked.
+ * Hours the doors are open in a week, added up from the owner's own table. A
+ * computed figure, so it cannot drift from the hours printed at the door and it
+ * cannot be a claim nobody checked.
  */
 function weeklyHours(hours) {
 	let minutes = 0;
@@ -56,45 +64,34 @@ function weeklyHours(hours) {
 }
 
 /**
- * One storey. The wrapper is what the rig reads to find its slabs, so the number painted
- * here and the hairline he stands on are one fact in two media. The number is decorative —
- * it repeats the heading inside it — so it is hidden from assistive technology rather than
- * announced five times on the way down.
- */
-function Floor({ no, children }) {
-	return (
-		<div className="floor" data-floor={no}>
-			<span aria-hidden="true" className="absolute right-gutter top-5 z-10">
-				<Stamp tone="muted">{no}</Stamp>
-			</span>
-			{children}
-		</div>
-	);
-}
-
-/**
- * A section: the heading at wall scale, whatever governs it on the line below, and the type
- * held out of the lane the man works in. The heading carries `parting` because it is the
- * line his fall goes through — the rig measures its letters and drives them aside.
+ * One station: a numbered stop on the walk, its number and its standing question
+ * painted on the wall above it with the strip light running off to the next one.
  *
- * `aside` is wrapped twice on purpose, and in this order. `.rise` animates a transform and
- * `.shove` sets one, so the two may never share an element — an animation would win
- * outright. `.shove` is the outer of the two because it is the one that gets measured, and
- * measuring a box that `.rise` currently has translated 2.5rem down the page would put its
- * middle 2.5rem off where he actually meets it.
+ * The head prints whether or not there is anything under it. An empty station is
+ * still a place in the room, and he has to have somewhere to stand.
  */
-function Band({ id, title, aside = null, children = null }) {
+function Station({ no, id, asks, children }) {
 	return (
-		<section id={id} className="py-14 sm:py-20">
-			<div className="mx-auto w-full max-w-board px-gutter pr-column">
-				<header className="mb-8 flex flex-col gap-4 sm:mb-12 sm:gap-5">
-					<TileText as="h2" text={title} className="wipe parting tile-lg" />
-					{aside ? (
-						<div className="shove max-w-measure">
-							<div className="rise">{aside}</div>
-						</div>
-					) : null}
-				</header>
+		<section id={id} data-station={no} className="station px-gutter py-14 sm:py-24">
+			<div className="mx-auto flex w-full max-w-board flex-col gap-8 sm:gap-12">
+				<p className="flex flex-wrap items-center gap-x-5 gap-y-2">
+					<span
+						aria-hidden="true"
+						className="tabular flex-none text-[0.72rem] font-extrabold tracking-[0.22em] text-action"
+					>
+						{String(no).padStart(2, "0")}
+					</span>
+					<span className="text-[0.66rem] font-bold uppercase tracking-[0.2em] text-muted">
+						{asks}
+					</span>
+					<span
+						aria-hidden="true"
+						className="hidden h-px flex-1 sm:block"
+						style={{
+							background: "linear-gradient(90deg, var(--edge-lit), var(--edge) 55%, transparent)",
+						}}
+					/>
+				</p>
 				{children}
 			</div>
 		</section>
@@ -102,31 +99,100 @@ function Band({ id, title, aside = null, children = null }) {
 }
 
 /**
- * One priced term as a line in a ledger. The whole line is the target — on a phone that is
- * a 76px-tall tap area, not a button hunted for at the end of a row — and reaching for it
- * floods the line with light from the left rather than drawing a box around it. The face
- * itself is shared with the member's desk, so the price reads the same in both places.
+ * A paragraph he walks through: its lines re-break to leave him room and close up
+ * behind him.
+ *
+ * Text and nothing else. The client hands the paragraph's own words to a canvas
+ * measurer and lays them out itself, so a link nested in here would come back as
+ * bare words with its href dropped. Links go on their own line, in a ledger row,
+ * or in a Press.
  */
-function PlanLine({ plan, href, signedIn }) {
+function Prose({ children, className = "" }) {
 	return (
-		<Link
-			href={href}
-			aria-label={`${plan.title}, ₹${plan.priceInr} — ${signedIn ? "take this term" : "sign in to take this term"}`}
-			className="ledger group block py-5 sm:py-7"
+		<p
+			data-flow
+			className={`max-w-measure text-[0.95rem] leading-relaxed text-muted sm:text-[1.02rem] ${className}`}
 		>
-			<PlanFace plan={plan} />
-		</Link>
+			{children}
+		</p>
 	);
 }
 
 /**
- * Label, leader, rule: the term sits on a line drawn to what governs it. Narrow screens
- * drop the leader and stack instead — a dashed line between two wrapped blocks connects
- * nothing.
+ * What is at this station, in the studio's own words, printed rather than
+ * photographed. The owner's photographs go on the facility itself when they upload
+ * them; a stock picture of somebody else's gym is not a substitute for one and is
+ * not shown here. Nothing zoned here says so, rather than leaving a hole.
+ */
+function FacilityList({ items }) {
+	if (!items.length) {
+		return (
+			<p className="text-[0.86rem] uppercase tracking-[0.16em] text-muted">
+				Nothing is listed here yet.
+			</p>
+		);
+	}
+	return (
+		<ol className="grid gap-x-10 border-b border-edge sm:grid-cols-2 lg:gap-x-16">
+			{items.map((item, index) => (
+				<li
+					key={item.id}
+					data-yield
+					className="flex items-baseline gap-4 border-t border-edge py-4 sm:gap-6"
+				>
+					<span
+						aria-hidden="true"
+						className="tabular w-[1.4rem] flex-none text-[0.72rem] font-extrabold tracking-[0.08em] text-action"
+					>
+						{String(index + 1).padStart(2, "0")}
+					</span>
+					<TileText text={item.title} className="tile-xs" />
+				</li>
+			))}
+		</ol>
+	);
+}
+
+/**
+ * Arithmetic on what the owner already maintains, at the size a number painted on
+ * a wall would be. Not a claim: the hours come off the hours table and the count
+ * off the room list, so neither can be talked up.
+ */
+function Figures({ rows }) {
+	if (!rows.length) return null;
+	return (
+		<dl className="grid grid-cols-1 border-b border-edge sm:grid-cols-2">
+			{rows.map(([value, label], index) => (
+				<div
+					key={label}
+					data-yield
+					className={`flex flex-col gap-2 border-t border-edge py-7 sm:py-9 ${
+						index ? "sm:border-l sm:border-edge sm:pl-6 lg:pl-10" : ""
+					}`}
+				>
+					<dd className="tabular order-1 text-[2.6rem] font-extrabold leading-[0.78] tracking-[-0.045em] text-tile [font-stretch:74%] sm:text-[3.6rem]">
+						{value}
+					</dd>
+					<dt className="order-2 text-[0.68rem] font-bold uppercase tracking-[0.2em] text-muted">
+						{label}
+					</dt>
+				</div>
+			))}
+		</dl>
+	);
+}
+
+/**
+ * Label, leader, rule: the term sits on a line drawn to what governs it. Narrow
+ * screens drop the leader and stack instead — a dashed line between two wrapped
+ * blocks connects nothing.
  */
 function LeaderRow({ label, detail }) {
 	return (
-		<li className="shove flex flex-col gap-0.5 border-t border-edge py-4 sm:flex-row sm:items-end sm:gap-3">
+		<li
+			data-yield
+			className="flex flex-col gap-0.5 border-t border-edge py-4 sm:flex-row sm:items-end sm:gap-3"
+		>
 			<span className="text-[0.74rem] font-bold uppercase tracking-[0.14em] text-tile sm:pb-1">
 				{label}
 			</span>
@@ -148,7 +214,8 @@ function ContactLine({ label, value, href, external = false }) {
 	return (
 		<a
 			href={href}
-			className="ledger shove group flex items-baseline justify-between gap-5 py-4"
+			data-yield
+			className="ledger group flex items-baseline justify-between gap-5 py-4"
 			{...away}
 		>
 			<span className="relative flex-none text-[0.66rem] font-bold uppercase tracking-[0.2em] text-muted">
@@ -177,260 +244,210 @@ export default async function HomePage() {
 		? plans.reduce((low, plan) => (perMonth(plan) < perMonth(low) ? plan : low))
 		: null;
 
-	// Three figures, each arithmetic on data the owner already maintains rather than a
-	// claim: the hours off the hours table, the count off the room list, and the load on
-	// the bar the visitor is watching — one plate per term, both ends, on a 20kg bar.
-	// Anything that comes out as zero is left off.
-	const barKg = plans.length
-		? 20 + 2 * plans.reduce((total, plan) => total + (Number(plan.plate) || 5), 0)
-		: 0;
-	const scale = [
+	// Two figures at the iron, both arithmetic on the owner's own data. Anything
+	// that comes out as zero is left off rather than printed as a nought.
+	const figures = [
 		[weeklyHours(settings.hours), "hours open a week"],
 		[facilities.length, "things in the room"],
-		[barKg ? `${barKg} kg` : 0, "on the bar behind you"],
 	].filter(([value]) => value !== 0);
+
+	// Recovery only explains metering if the owner's terms actually meter something.
+	const metered = plans.some((plan) => plan.perks?.length);
 
 	return (
 		<>
-			<Stage plates={plans.map((plan) => Number(plan.plate) || 5).join(",")} />
+			{/*
+			 * The studio's name painted on the far wall of the hall. It is the CSS
+			 * backdrop, behind the room's own canvas, so the rack and the loaded bar
+			 * pass in front of the lettering — the hall has real depth in it rather than
+			 * a picture of depth. Where the rig never mounts, it is simply wall paint.
+			 */}
+			<span aria-hidden="true" className="mural">
+				<span>{settings.brand.shortName}</span>
+			</span>
+
+			{/*
+			 * The room. Mounts itself only where the browser can carry it and takes itself
+			 * away again if the frames turn out too slow, so everything below stands on its
+			 * own — this is the last thing added to the page and the first thing to go.
+			 */}
+			<Room hours={settings.hours} plans={plans} />
 
 			<main id="board-main">
-				<Floor no="05">
-					<section className="relative flex min-h-[calc(100svh-var(--rail-height))] flex-col justify-end px-gutter pb-12 pt-20 sm:pb-16">
-						{/*
-						 * The name painted on the far wall. It is behind the rig's canvas, so the
-						 * loaded bar passes in front of the lettering — the first viewport has
-						 * actual depth in it instead of a picture of depth.
-						 */}
-						<span aria-hidden="true" className="mural">
-							<span>{settings.brand.shortName}</span>
-						</span>
+				{/*
+				 * 01 · THE DOOR. The lamp, the name, the week, and the one line the
+				 * shutter itself says — all three of the live ones read the studio's own
+				 * clock on the client, because a cached page must not claim an hour that
+				 * has passed. No price here: nobody walks into a gym and asks that first.
+				 */}
+				<Station no={1} id="door" asks="Is it open, and where am I?">
+					<div className="flex flex-col gap-6 sm:gap-8">
+						<OpenNow hours={settings.hours} />
+						<TileText as="h1" text={settings.brand.name} className="tile-xl" press stagger={34} />
+					</div>
 
-						{/*
-						 * The type sits on the room, not in a box. This one scrim is what keeps it
-						 * legible over whatever the steel behind it is doing — heavy where the
-						 * words are, gone by the middle of the frame so the man is not veiled.
-						 */}
-						<span
-							aria-hidden="true"
-							className="pointer-events-none absolute inset-x-0 bottom-0 top-[18%]"
-							style={{
-								background:
-									"linear-gradient(to top, color-mix(in srgb, var(--board) 94%, transparent) 6%, color-mix(in srgb, var(--board) 52%, transparent) 42%, transparent 84%)",
-							}}
-						/>
-
-						<div className="relative mx-auto flex w-full max-w-board flex-col gap-7 pr-lane sm:gap-9">
-							<OpenNow hours={settings.hours} className="lg:hidden" />
-
-							<TileText as="h1" text={settings.brand.name} className="tile-xl" press stagger={34} />
-
-							<div className="flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between sm:gap-12">
-								<p className="max-w-measure text-[0.95rem] leading-relaxed text-muted sm:text-[1.05rem]">
-									{settings.brand.line} Steel, floor space and every class in one membership. Sign in,
-									take a term, and it activates on your account the moment you press it.
-								</p>
-
-								{best ? (
-									<p className="flex flex-none items-end gap-3">
-										<span className="tabular text-[3rem] font-extrabold leading-[0.78] tracking-[-0.045em] text-tile [font-stretch:74%] sm:text-[4.2rem]">
-											₹{perMonth(best).toLocaleString("en-IN")}
-										</span>
-										<span className="pb-1 text-[0.7rem] uppercase leading-tight tracking-[0.16em] text-muted">
-											a month
-											<br />
-											on the {best.title.toLowerCase()} term
-										</span>
-									</p>
-								) : null}
-							</div>
-
-							<div className="flex flex-wrap items-center gap-3 sm:gap-4">
-								<Press href={join} size="lg">
+					<div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16">
+						<div className="flex flex-col gap-7">
+							<Prose>
+								{settings.brand.line} Steel, floor space and every class in one membership. Sign
+								in, take a term, and it is on your account the moment you press it.
+							</Prose>
+							<DoorLine hours={settings.hours} />
+							<div className="flex flex-col items-start gap-3.5">
+								<Press href={join} size="lg" data-yield>
 									{cta}
-								</Press>
-								<Press href="#rates" tone="ghost" size="lg">
-									See the rates
 								</Press>
 								<span className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-muted">
 									No payment is taken online
 								</span>
 							</div>
 						</div>
-					</section>
 
-					{/*
-					 * The size of the place, in three figures. No heading: these are the caption
-					 * to the room itself. This floor has no `.parting` line and no `.shove` rows
-					 * because he is standing on it, not falling through it.
-					 */}
-					{scale.length >= 3 ? (
-						<section className="mx-auto w-full max-w-board border-t border-edge px-gutter">
-							<dl className="grid grid-cols-1 sm:grid-cols-3">
-								{scale.map(([value, label], index) => (
-									<div
-										key={label}
-										className={`rise flex flex-col gap-2 border-edge py-8 sm:py-14 ${
-											index ? "border-t sm:border-l sm:border-t-0 sm:pl-6 lg:pl-10" : ""
-										}`}
-									>
-										<dd className="tabular order-1 text-[2.9rem] font-extrabold leading-[0.78] tracking-[-0.045em] text-tile [font-stretch:74%] sm:text-[4rem]">
-											{value}
-										</dd>
-										<dt className="order-2 text-[0.68rem] font-bold uppercase tracking-[0.2em] text-muted">
-											{label}
-										</dt>
-									</div>
+						<div className="flex flex-col gap-4">
+							<Stamp tone="tile">The week on the door</Stamp>
+							<HoursStrip hours={settings.hours} />
+						</div>
+					</div>
+
+					<p className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-muted">
+						Scroll — he walks you through it
+					</p>
+				</Station>
+
+				{/*
+				 * 02 · THE IRON. What he is standing in front of: the machines and the free
+				 * weights, what is expected of you while you use them, and the size of the
+				 * place in two figures nobody had to write down.
+				 */}
+				<Station no={2} id="iron" asks="What can I actually train on?">
+					<TileText as="h2" text="The iron" className="tile-lg" />
+					<Prose>
+						Racks, bars, plates and the machines, on one open floor. Nothing here is a
+						separate membership and nothing is booked — you turn up and use it.
+					</Prose>
+
+					<FacilityList items={facilitiesIn(facilities, "iron")} />
+
+					{rules.length ? (
+						<div className="flex flex-col gap-4">
+							<Stamp tone="tile">While you train</Stamp>
+							<ul className="flex flex-col border-b border-edge">
+								{rules.map((rule) => (
+									<LeaderRow key={rule.id} label={rule.label} detail={rule.detail} />
 								))}
-							</dl>
-						</section>
+							</ul>
+						</div>
 					) : null}
 
-					{/*
-					 * The only affordance this floor needs. He is already working above the line,
-					 * so the page says what happens next once and in its own voice rather than
-					 * drawing a bouncing chevron about it.
-					 */}
-					<p className="mx-auto w-full max-w-board px-gutter pb-12 text-[0.68rem] font-bold uppercase tracking-[0.2em] text-muted sm:pb-16">
-						Scroll — he takes the floors the hard way
-					</p>
-				</Floor>
+					<Figures rows={figures} />
+				</Station>
 
-				<Floor no="04">
-					<Band
-						id="rates"
-						title="RATES"
-						aside={
-							<div className="flex flex-col gap-4">
-								<p className="text-[0.86rem] leading-relaxed text-muted sm:text-[0.92rem]">
-									Longer terms cost less per month. Every term includes the whole floor and every
-									class; only the steam bath and massage chair counts change.
-								</p>
-								<Press href={join} size="md">
-									{cta}
-								</Press>
-							</div>
-						}
+				{/*
+				 * 03 · THE FLOOR. The classes, which are the answer to the question a rate
+				 * card never answers: what am I getting that is not a machine.
+				 */}
+				<Station no={3} id="classes" asks="What else is included?">
+					<TileText as="h2" text="The floor" className="tile-lg" />
+					<Prose>
+						Every class the studio runs is in the one membership. There is no per-class fee,
+						no separate pass and no upgrade tier — the same term that opens the door opens
+						the floor.
+					</Prose>
+
+					<FacilityList items={facilitiesIn(facilities, "classes")} />
+				</Station>
+
+				{/*
+				 * 04 · RECOVERY. What happens after the session, which is the half of a gym
+				 * that gets left off its own website. The metered line is printed only if the
+				 * owner's terms actually meter something.
+				 */}
+				<Station no={4} id="recovery" asks="What do I get afterwards?">
+					<TileText as="h2" text="Recovery" className="tile-lg" />
+					<Prose>
+						The end of a session is part of the session. Steam, the chair, a locker and
+						something hot are all on the same membership as the barbells.
+					</Prose>
+
+					<FacilityList items={facilitiesIn(facilities, "recovery")} />
+
+					{metered ? (
+						<Prose>
+							The steam bath and the massage chair are metered rather than unlimited: each
+							term includes a set number of both, and the count for a term is printed on its
+							line at the desk.
+						</Prose>
+					) : null}
+
+					<Link
+						href="/transformations"
+						data-yield
+						className="ledger group flex items-baseline justify-between gap-5 py-5"
 					>
-						{/*
-						 * The plates on the bar he is loading one floor up are these five terms, in
-						 * this order. `Stage` is handed the same list, so a price edit re-loads the
-						 * bar as well as the ledger.
-						 */}
+						<span className="relative">
+							<TileText text="Member results" className="tile-sm" />
+						</span>
+						<span className="relative flex-none text-[0.68rem] font-bold uppercase tracking-[0.2em] text-muted transition-colors group-hover:text-action">
+							See the board
+						</span>
+					</Link>
+				</Station>
+
+				{/*
+				 * 05 · THE DESK. The last stop, and the first place a price appears. Each row
+				 * carries its plan id, because that row and the plate on the tree behind it are
+				 * one fact in two media: a price the owner edits re-cuts the metal.
+				 */}
+				<Station no={5} id="desk" asks="What does it cost, and what happens if I press?">
+					<TileText as="h2" text="The desk" className="tile-lg" />
+					<Prose>
+						Longer terms cost less per month. Every term includes the whole floor and every
+						class; only the metered counts change.
+					</Prose>
+
+					{plans.length ? (
 						<ol className="border-b border-edge">
 							{plans.map((plan) => (
-								<li key={plan.id} className="shove border-t border-edge">
-									<PlanLine plan={plan} href={join} signedIn={signedIn} />
+								<li key={plan.id} data-plate={plan.id} data-yield className="border-t border-edge">
+									<Link
+										href={join}
+										aria-label={`${plan.title}, ₹${plan.priceInr} — ${
+											signedIn ? "take this term" : "sign in to take this term"
+										}`}
+										className="ledger group block py-5 sm:py-7"
+									>
+										<PlanFace plan={plan} />
+									</Link>
 								</li>
 							))}
 						</ol>
-						<p className="mt-6 max-w-measure text-[0.76rem] leading-relaxed text-muted">
-							No payment is taken online. Activating a term records it on your account — nothing is
-							charged{settings.checkout?.note ? `. ${settings.checkout.note}` : "."}
+					) : null}
+
+					{best ? (
+						<p className="flex flex-wrap items-end gap-x-4 gap-y-1">
+							<span className="tabular text-[2.6rem] font-extrabold leading-[0.78] tracking-[-0.045em] text-tile [font-stretch:74%] sm:text-[3.4rem]">
+								₹{perMonth(best).toLocaleString("en-IN")}
+							</span>
+							<span className="pb-1 text-[0.7rem] uppercase leading-tight tracking-[0.16em] text-muted">
+								a month is the least it costs,
+								<br />
+								on the {best.title.toLowerCase()} term
+							</span>
 						</p>
-					</Band>
-				</Floor>
+					) : null}
 
-				<Floor no="03">
-					<Band
-						id="room"
-						title="THE ROOM"
-						aside={
-							<p className="text-[0.86rem] leading-relaxed text-muted sm:text-[0.92rem]">
-								Everything the studio has, and what is expected of you while you use it. Steam
-								baths and the massage chair are metered per term; the count for each is on its
-								line in the rates above.
-							</p>
-						}
-					>
-						{/*
-						 * The room as a list of what is in it, printed rather than photographed. The
-						 * studio's own photographs go here when the owner uploads them; a stock
-						 * picture of somebody else's gym is not a substitute and is not shown.
-						 */}
-						{facilities.length ? (
-							<ol className="grid gap-x-10 border-b border-edge sm:grid-cols-2 lg:gap-x-16">
-								{facilities.map((facility, index) => (
-									<li
-										key={facility.id}
-										className="shove flex items-baseline gap-4 border-t border-edge py-4 sm:gap-6"
-									>
-										<span
-											aria-hidden="true"
-											className="tabular w-[1.4rem] flex-none text-[0.72rem] font-extrabold tracking-[0.08em] text-action"
-										>
-											{String(index + 1).padStart(2, "0")}
-										</span>
-										<TileText text={facility.title} className="tile-xs" />
-									</li>
-								))}
-							</ol>
-						) : null}
-
-						{rules.length ? (
-							<div className="mt-10 flex flex-col gap-4 sm:mt-14">
-								<Stamp tone="tile">While you train</Stamp>
-								<ul className="flex flex-col border-b border-edge">
-									{rules.map((rule) => (
-										<LeaderRow key={rule.id} label={rule.label} detail={rule.detail} />
-									))}
-								</ul>
-							</div>
-						) : null}
-					</Band>
-				</Floor>
-
-				{/*
-				 * Hours sit below the room and above the desk: a prospect asks what is in there,
-				 * then when it is open, then how to join, and each floor is a whole viewport of
-				 * scrolling away from the next.
-				 */}
-				<Floor no="02">
-					<Band
-						id="hours"
-						title="HOURS"
-						aside={
-							<div className="flex">
-								<OpenNow hours={settings.hours} />
-							</div>
-						}
-					>
-						<HoursBand hours={settings.hours} />
-					</Band>
-				</Floor>
-
-				<Floor no="01">
-					{/*
-					 * The last stop on the route: the three things that happen after the press,
-					 * said plainly, because the one thing a visitor fears here is that pressing it
-					 * charges a card. It does not. Whatever the studio has published about
-					 * reaching them follows on the same floor rather than on one of its own — the
-					 * rig has five stations and the floor count cannot depend on the owner's data.
-					 */}
-					<Band
-						id="join"
-						title="JOIN THE FLOOR"
-						aside={
-							<div className="flex flex-col gap-3.5">
-								<Press href={join} size="lg">
-									{cta}
-								</Press>
-								<p className="max-w-[24rem] text-[0.74rem] leading-relaxed text-muted">
-									No card is asked for and nothing is charged online. Your term is recorded on
-									your account and settled at the studio.
-								</p>
-							</div>
-						}
-					>
+					<div className="flex flex-col gap-4">
+						<Stamp tone="tile">What happens when you press it</Stamp>
 						<ol className="border-b border-edge">
 							{JOIN_STEPS.map(([step, detail], index) => (
 								<li
 									key={step}
-									className="shove flex items-baseline gap-4 border-t border-edge py-5 sm:gap-8 sm:py-6"
+									data-yield
+									className="flex items-baseline gap-4 border-t border-edge py-4 sm:gap-8 sm:py-5"
 								>
 									<span
 										aria-hidden="true"
-										className="tabular w-[1.5rem] flex-none text-[0.8rem] font-extrabold tracking-[0.08em] text-action sm:text-[0.95rem]"
+										className="tabular w-[1.5rem] flex-none text-[0.8rem] font-extrabold tracking-[0.08em] text-action"
 									>
 										{String(index + 1).padStart(2, "0")}
 									</span>
@@ -443,71 +460,80 @@ export default async function HomePage() {
 								</li>
 							))}
 						</ol>
+					</div>
 
-						{hasVisitInfo(contact) ? (
-							<div id="visit" className="mt-12 flex flex-col gap-4 sm:mt-16">
-								<Stamp tone="tile">Where and how to reach us</Stamp>
-								{contact.addressLines?.length ? (
-									<address className="not-italic text-[0.95rem] leading-relaxed text-tile sm:text-[1.05rem]">
-										{contact.addressLines.map((line) => (
-											<span key={line} className="block">
-												{line}
-											</span>
-										))}
-									</address>
-								) : null}
-								<div className="grid gap-10 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-14">
-									<div className="flex flex-col border-b border-edge">
-										{contact.phone ? (
-											<ContactLine label="Call" value={contact.phone} href={`tel:${contact.phone}`} />
-										) : null}
-										{contact.whatsapp ? (
-											<ContactLine
-												label="WhatsApp"
-												value={String(contact.whatsapp)}
-												href={`https://wa.me/${String(contact.whatsapp).replace(/\D/g, "")}`}
-												external
-											/>
-										) : null}
-										{contact.email ? (
-											<ContactLine
-												label="Email"
-												value={contact.email}
-												href={`mailto:${contact.email}`}
-											/>
-										) : null}
-										{contact.instagram ? (
-											<ContactLine
-												label="Instagram"
-												value={contact.instagram.replace(/^https?:\/\/(www\.)?/, "")}
-												href={contact.instagram}
-												external
-											/>
-										) : null}
-									</div>
-									{contact.mapEmbedUrl ? (
-										<div
-											className="aspect-[4/3] w-full overflow-hidden"
-											style={{ borderTop: "1px solid var(--edge-lit)" }}
-										>
-											<iframe
-												src={contact.mapEmbedUrl}
-												title="Studio location"
-												loading="lazy"
-												referrerPolicy="no-referrer-when-downgrade"
-												className="h-full w-full"
-												style={{ border: 0 }}
-											/>
-										</div>
+					<div className="flex flex-col items-start gap-3.5">
+						<Press href={join} size="lg" data-yield>
+							{cta}
+						</Press>
+						<p className="max-w-[26rem] text-[0.74rem] leading-relaxed text-muted">
+							No card is asked for and nothing is charged online. Your term is recorded on your
+							account and settled at the studio
+							{settings.checkout?.note ? `. ${settings.checkout.note}` : "."}
+						</p>
+					</div>
+
+					{hasVisitInfo(contact) ? (
+						<div id="visit" className="flex flex-col gap-4">
+							<Stamp tone="tile">Where and how to reach us</Stamp>
+							{contact.addressLines?.length ? (
+								<address className="not-italic text-[0.95rem] leading-relaxed text-tile sm:text-[1.05rem]">
+									{contact.addressLines.map((line) => (
+										<span key={line} className="block">
+											{line}
+										</span>
+									))}
+								</address>
+							) : null}
+							<div className="grid gap-10 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:gap-14">
+								<div className="flex flex-col border-b border-edge">
+									{contact.phone ? (
+										<ContactLine label="Call" value={contact.phone} href={`tel:${contact.phone}`} />
+									) : null}
+									{contact.whatsapp ? (
+										<ContactLine
+											label="WhatsApp"
+											value={String(contact.whatsapp)}
+											href={`https://wa.me/${String(contact.whatsapp).replace(/\D/g, "")}`}
+											external
+										/>
+									) : null}
+									{contact.email ? (
+										<ContactLine label="Email" value={contact.email} href={`mailto:${contact.email}`} />
+									) : null}
+									{contact.instagram ? (
+										<ContactLine
+											label="Instagram"
+											value={contact.instagram.replace(/^https?:\/\/(www\.)?/, "")}
+											href={contact.instagram}
+											external
+										/>
 									) : null}
 								</div>
+								{contact.mapEmbedUrl ? (
+									<div
+										className="aspect-[4/3] w-full overflow-hidden"
+										style={{ borderTop: "1px solid var(--edge-lit)" }}
+									>
+										<iframe
+											src={contact.mapEmbedUrl}
+											title="Studio location"
+											loading="lazy"
+											referrerPolicy="no-referrer-when-downgrade"
+											className="h-full w-full"
+											style={{ border: 0 }}
+										/>
+									</div>
+								) : null}
 							</div>
-						) : null}
-					</Band>
-				</Floor>
+						</div>
+					) : null}
 
-				<footer className="border-t border-edge" data-floor="ground">
-					<div className="mx-auto flex w-full max-w-board flex-col gap-7 px-gutter py-12 sm:flex-row sm:items-end sm:justify-between">
+
+				</Station>
+
+				<footer className="border-t border-edge px-gutter py-12">
+					<div className="mx-auto flex w-full max-w-board flex-col gap-7 sm:flex-row sm:items-end sm:justify-between">
 						<div className="flex flex-col gap-2.5">
 							<TileText text={settings.brand.name} className="tile-xs" />
 							{contact.addressLines?.length ? (
@@ -517,12 +543,13 @@ export default async function HomePage() {
 							) : null}
 						</div>
 
-						<nav aria-label="Sections" className="flex flex-wrap gap-x-6 gap-y-2.5">
+						<nav aria-label="Stations" className="flex flex-wrap gap-x-6 gap-y-2.5">
 							{[
-								["Rates", "#rates"],
-								["The room", "#room"],
-								["Hours", "#hours"],
-								["Join", "#join"],
+								["The door", "#door"],
+								["The iron", "#iron"],
+								["The floor", "#classes"],
+								["Recovery", "#recovery"],
+								["The desk", "#desk"],
 								["Results", "/transformations"],
 								...(contact.phone ? [["Call", `tel:${contact.phone}`]] : []),
 							].map(([label, href]) => (

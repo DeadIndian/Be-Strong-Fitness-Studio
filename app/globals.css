@@ -34,14 +34,6 @@
 	--tile-size: clamp(1.4rem, 5.4vw, 2.6rem);
 	--rail-height: clamp(2.75rem, 9vw, 3.5rem);
 	--gutter: clamp(1rem, 4vw, 2.5rem);
-
-	/*
-	 * The lane he works in, kept clear of type on every floor. On a phone it is a
-	 * narrow strip beside the column; on a wide screen it is a quarter of the board.
-	 * The rig never reads this value — it measures the column that this padding
-	 * creates — so the two cannot drift apart.
-	 */
-	--lane: clamp(4.5rem, 22vw, 24rem);
 }
 
 @layer base {
@@ -51,11 +43,11 @@
 		scroll-padding-top: calc(var(--rail-height) + 0.75rem);
 		-webkit-text-size-adjust: 100%;
 		/*
-		 * One floor per rest position. `proximity`, never `mandatory`: a mandatory snap
-		 * cannot be scrolled *inside*, so at 200% zoom a floor taller than the viewport
-		 * would have unreachable content and fail WCAG 1.4.10. Proximity lets a
-		 * deliberate scroll settle where the reader put it and still lands the casual
-		 * flick on a hairline.
+		 * One station per rest position. `proximity`, never `mandatory`: a mandatory
+		 * snap cannot be scrolled *inside*, so at 200% zoom a station taller than the
+		 * viewport would have unreachable content and fail WCAG 1.4.10. Proximity lets
+		 * a deliberate scroll settle where the reader put it and still lands a casual
+		 * flick with him standing at a station rather than mid-floor.
 		 */
 		scroll-snap-type: y proximity;
 	}
@@ -70,9 +62,13 @@
 	}
 
 	/*
-	 * The floor of the room. It has to sit *behind* the rig's canvas (z-index -10),
-	 * not just behind the content — its last layer is opaque, so any z-index above
-	 * the canvas paints the steel out entirely.
+	 * The far wall of the hall, and the light in it. It sits *behind* the room's own
+	 * canvas (z-index -10), not just behind the content — the last layer here is
+	 * opaque, so any z-index above the canvas paints the room out entirely.
+	 *
+	 * There is no back wall in the WebGL hall on purpose: this is the back wall, so
+	 * the rack and the loaded bar are geometry standing in front of paint, and the
+	 * one surface a browser renders best stays a browser's job.
 	 */
 	body::before {
 		content: "";
@@ -205,18 +201,19 @@
 	}
 
 	/*
-	 * The studio's name painted on the far wall of the room, at the size it would
-	 * actually be painted. It sits *behind* the rig's canvas — z-index -15 against
-	 * the canvas's -10 — so the loaded bar passes in front of the lettering. That
-	 * occlusion is the whole point: the first viewport has real depth in it rather
-	 * than a picture of depth. Where the rig never mounts it is simply wall paint.
+	 * The studio's name painted on the far wall, at the size it would actually be
+	 * painted. Fixed and full-bleed, because the far wall of a hall you walk along
+	 * stays where it is; behind the room's canvas at -10, because the point is that
+	 * the rack and the bar pass in front of the lettering. Where the rig never mounts
+	 * it is simply wall paint, which is all it ever claimed to be.
 	 */
 	.mural {
-		position: absolute;
+		position: fixed;
 		inset: 0;
-		z-index: -15;
+		z-index: -18;
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		overflow: hidden;
 		pointer-events: none;
 	}
@@ -224,14 +221,13 @@
 	.mural > span {
 		display: block;
 		flex: none;
-		padding-left: var(--gutter);
-		font-size: 27vw;
+		font-size: 21vmax;
 		font-weight: 800;
 		font-stretch: 60%;
 		line-height: 0.76;
 		letter-spacing: -0.055em;
 		white-space: nowrap;
-		color: color-mix(in srgb, var(--tile) 7%, transparent);
+		color: color-mix(in srgb, var(--tile) 6%, transparent);
 	}
 
 	/* One character of a run. Bare glyph: the type is the object, not a tile. */
@@ -251,17 +247,19 @@
 	}
 
 	/*
-	 * The corridor, and the only thing in the site that the rig moves directly.
-	 * `--push` is the distance this one object steps aside, written once per fall;
-	 * `--open` is how far the corridor is open, written per frame. Both default to
-	 * nothing, so an object with no rig behind it never moves and the whole
-	 * mechanism costs one composited transform.
+	 * The one thing in the site the rig moves directly. `--push` is how far this row goes
+	 * to get out from behind him, written per frame from its own measured clearance;
+	 * `--open` is how much of that it has taken so far. Both default to nothing, so a row
+	 * with no rig behind it never moves and the whole mechanism costs one composited
+	 * transform and no layout.
 	 *
-	 * A letter and a whole priced row are the same object here on purpose: he
-	 * displaces the page, not just its lettering.
+	 * The row is the object, not the letter. Custom properties inherit, so putting this on
+	 * `.letter-tile` as well meant a heading's row moved and then every letter inside it
+	 * moved the same distance again — the same displacement applied twice. Prose does not
+	 * appear here either: a paragraph he walks through is genuinely re-broken instead,
+	 * which is what `data-flow` is for.
 	 */
-	.letter-tile,
-	.shove {
+	[data-yield] {
 		transform: translateX(calc(var(--push, 0px) * var(--open, 0)));
 	}
 
@@ -297,13 +295,13 @@
 		--tile-size: clamp(0.95rem, 3vw, 1.4rem);
 	}
 	.tile-md {
-		--tile-size: clamp(1.6rem, 6.4vw, 3.1rem);
+		--tile-size: clamp(1.3rem, 4.4vw, 2.25rem);
 	}
 	.tile-lg {
-		--tile-size: clamp(1.9rem, 8vw, 4.2rem);
+		--tile-size: clamp(1.55rem, 5.6vw, 2.95rem);
 	}
 	.tile-xl {
-		--tile-size: clamp(2.4rem, 11.5vw, 6rem);
+		--tile-size: clamp(1.95rem, 7.2vw, 3.9rem);
 	}
 
 	/* The mobile menu: a glass panel sliding in off the rail. */
@@ -435,82 +433,48 @@
 	}
 
 	/*
-	 * Content answering the rig behind it: each block rises as its own scroll
-	 * range passes, driven by the browser's view timeline — no observer, no JS.
-	 * Where that timeline is unsupported the block is simply already there,
-	 * which is why the un-animated state is the finished state.
+	 * One station: a stop on the walk, and one rest position for the scroll. A
+	 * station holds the height of a screen so that arriving at one puts him in the
+	 * middle of it with his own work in front of him, and gives way past that when
+	 * the content or the zoom level needs more room.
+	 *
+	 * No `scroll-snap-stop`. Stopping a flick at every station would be the cutscene
+	 * this page deliberately is not: a reader who flicks hard for the price gets the
+	 * price.
 	 */
-	@supports (animation-timeline: view()) {
-		@media (prefers-reduced-motion: no-preference) {
-			.rise {
-				animation: rise linear both;
-				animation-timeline: view();
-				animation-range: entry 5% cover 26%;
-			}
-		}
-	}
-
-	@keyframes rise {
-		from {
-			opacity: 0;
-			transform: translateY(2.5rem);
-		}
-		to {
-			opacity: 1;
-			transform: none;
-		}
-	}
-
-	/*
-	 * A heading arrives the way lettering is actually painted on a wall: pulled
-	 * across from the left as its band comes up the screen. Drawn by the same view
-	 * timeline as .rise, so it costs no JS either, and an unsupported browser gets
-	 * the finished lettering.
-	 */
-	@supports (animation-timeline: view()) {
-		@media (prefers-reduced-motion: no-preference) {
-			.wipe {
-				animation: wipe linear both;
-				animation-timeline: view();
-				animation-range: entry 6% cover 20%;
-			}
-		}
-	}
-
-	/*
-	 * The horizontal slack is not decoration: a heading that parts pushes its letters
-	 * outside the box the wipe would otherwise clip them to, and they would vanish at
-	 * the edge of their own reveal. The clip runs a viewport wide on both sides.
-	 */
-	@keyframes wipe {
-		from {
-			clip-path: inset(0 100% 0 -100vw);
-		}
-		to {
-			clip-path: inset(0 -100vw 0 -100vw);
-		}
-	}
-
-	/*
-	 * A storey. Each one is a snap position, so a flick settles on a hairline and he
-	 * lands rather than hangs mid-shaft. `scroll-snap-stop: always` is what stops one
-	 * hard flick from skipping two floors, and two falls, at once.
-	 */
-	.floor {
+	.station {
 		position: relative;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		min-height: calc(100svh - var(--rail-height));
 		scroll-snap-align: start;
-		scroll-snap-stop: always;
 	}
 
-	/* The hairline between storeys: the slab he stands on and pushes off. */
-	.floor + .floor,
-	.floor + footer {
+	.station + .station,
+	.station + footer {
 		border-top: 1px solid var(--edge);
 	}
 
-	/* Inside a storey, sections still divide — they just are not slabs. */
-	.floor > section + section {
-		border-top: 1px solid var(--edge);
+	/*
+	 * Legibility over the room, and only where there is a room. The gradient is
+	 * heaviest at the floor, where the mass of the type sits, and gone by the middle
+	 * of the station, so the kit, the window and the man himself are never veiled.
+	 * `room.js` sets the attribute once the renderers are actually running, so the
+	 * plain document is never washed with a gradient over nothing.
+	 */
+	html[data-room="on"] .station::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		background: linear-gradient(
+			to top,
+			color-mix(in srgb, var(--board) 88%, transparent),
+			color-mix(in srgb, var(--board) 46%, transparent) 44%,
+			transparent 82%
+		);
 	}
 
 	/* One hairline, lit at the left where the strip light starts. */

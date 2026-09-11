@@ -15,11 +15,16 @@ import OpenNow from "../board/open-now";
 import Press from "../board/press";
 import { Stamp, TileText } from "../board/tile-text";
 
+/*
+ * The public links are the hall in walk-in order, minus the door the visitor is
+ * already standing at. Same order as the page, so the rail and the walk agree.
+ */
 function publicLinks(settings) {
 	const links = [
-		{ label: "Rates", href: "/#rates" },
-		{ label: "The room", href: "/#room" },
-		{ label: "Hours", href: "/#hours" },
+		{ label: "The iron", href: "/#iron" },
+		{ label: "Classes", href: "/#classes" },
+		{ label: "Recovery", href: "/#recovery" },
+		{ label: "Rates", href: "/#desk" },
 		{ label: "Results", href: "/transformations" },
 	];
 	// No link to a section with nothing in it yet.

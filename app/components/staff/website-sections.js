@@ -10,7 +10,7 @@
  */
 
 import { useState } from "react";
-import { PLATE_COLORS, plateColor, SITE_DEFAULTS } from "@/lib/site/defaults";
+import { PLATE_COLORS, plateColor, safeZone, SITE_DEFAULTS } from "@/lib/site/defaults";
 import { WEEKDAY_LABELS } from "@/lib/site/hours.mjs";
 import { inlineImage } from "@/lib/site/image";
 import { safeMapEmbed } from "@/lib/site/sanitize";
@@ -19,6 +19,13 @@ import { ColorField, Field, SelectField, TextField } from "../board/field";
 import Panel from "../board/panel";
 import Press from "../board/press";
 import { Stamp, TileText } from "../board/tile-text";
+
+/** The three middle stations as the owner reads them, in walk-in order. */
+const ZONE_LABELS = [
+	["iron", "The iron — machines and free weights"],
+	["classes", "Classes — the bags, the mats, the floor"],
+	["recovery", "Recovery — after the session"],
+];
 
 /**
  * A row in a list the owner can grow: one hairline above it, the delete sitting
@@ -618,13 +625,13 @@ export function FacilitiesSection({ draft, set, used, budget }) {
 	return (
 		<Panel
 			title="What's in the room"
-			hint="The cards visitors scroll through. Order here is the order on the site."
+			hint="Visitors read these as they walk past. The station decides where in the hall each one is read; the order within a station is the order here."
 			actions={
 				<Press
 					tone="ghost"
 					size="sm"
 					onClick={() =>
-						set(["facilities"], [...facilities, { id: slug("", "fac"), title: "New", image: "" }])
+						set(["facilities"], [...facilities, { id: slug("", "fac"), title: "New", zone: "iron", image: "" }])
 					}
 				>
 					Add a card
@@ -644,6 +651,18 @@ export function FacilitiesSection({ draft, set, used, budget }) {
 								value={facility.title}
 								onChange={(event) => set(["facilities", index, "title"], event.target.value)}
 							/>
+							<SelectField
+								label="Station"
+								hint="Where in the hall this is read."
+								value={safeZone(facility.zone)}
+								onChange={(event) => set(["facilities", index, "zone"], event.target.value)}
+							>
+								{ZONE_LABELS.map(([zone, label]) => (
+									<option key={zone} value={zone}>
+										{label}
+									</option>
+								))}
+							</SelectField>
 							<ImagePicker
 								label="Photo"
 								value={facility.image}

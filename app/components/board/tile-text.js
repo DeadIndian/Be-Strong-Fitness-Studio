@@ -33,14 +33,14 @@ export function TileText({
 		<Tag
 			ref={innerRef}
 			aria-label={String(text ?? "")}
-			className={`inline-flex flex-wrap items-center gap-x-[0.34em] gap-y-[0.06em] ${className}`}
+			className={`inline-flex flex-wrap items-baseline gap-x-[calc(var(--tile-size)*0.32)] gap-y-[calc(var(--tile-size)*0.14)] ${className}`}
 			style={style}
 		>
 			{words.map(({ word, start }) => (
 				<span
 					aria-hidden="true"
 					key={`${word}-${start}`}
-					className="inline-flex flex-none items-center gap-[0.12em]"
+					className="inline-flex flex-none items-baseline gap-[calc(var(--tile-size)*0.018)]"
 				>
 					{Array.from(word).map((character, offset) => (
 						<span
