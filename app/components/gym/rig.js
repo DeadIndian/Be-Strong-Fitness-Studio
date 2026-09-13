@@ -109,7 +109,7 @@ export function createRig({ canvasHall, canvasActor, hours, plans, reduced = fal
 	const kit = buildKit(THREE, { mat, plans });
 	const crowd = buildCrowd(THREE, mat);
 	const ghost = buildReflection(THREE, mat, MIRROR.z);
-	hallScene.add(hall.group, kit.group, crowd.group, ghost.group);
+	hallScene.add(hall.group, crowd.group, ghost.group, kit.bgGroup);
 
 	/*
 	 * His scene holds him, his shadow, and two lights of its own. It needs the lights
@@ -121,7 +121,14 @@ export function createRig({ canvasHall, canvasActor, hours, plans, reduced = fal
 	const fill = new THREE.AmbientLight(0xffffff, 1);
 	const key = new THREE.DirectionalLight(0xffffff, 1);
 	const rim = new THREE.PointLight(0xffffff, 1, 9, 2);
-	actorScene.add(man.group, shade.mesh, fill, key, rim);
+	const kitAmbient = new THREE.AmbientLight(mat.floor.color, 1);
+	const kitSun = new THREE.DirectionalLight("#ffffff", 1);
+	kitSun.target.position.set(0, 0.2, 1.4);
+
+	actorScene.add(man.group, shade.mesh, fill, key, rim, kit.fgGroup, kitAmbient, kitSun, kitSun.target);
+
+	// Precompute kit bounding boxes in world space for obstacle generation
+	const kitBoxes = kit.obstacles.map((obs) => new THREE.Box3().setFromObject(obs));
 
 	let page = scanPage();
 	let flows = null;
@@ -166,6 +173,12 @@ export function createRig({ canvasHall, canvasActor, hours, plans, reduced = fal
 		rim.color.copy(mat.strip.emissive);
 		rim.intensity = light.strip * 5.5;
 		ghost.lamp.intensity = light.strip * 3.2 + light.ambient * 2.4;
+
+		kitAmbient.color.copy(mat.floor.color).lerp(new THREE.Color(light.sun.color), 0.35);
+		kitAmbient.intensity = light.ambient * 3.4;
+		kitSun.color.set(light.sun.color);
+		kitSun.intensity = light.sun.intensity * 2.4;
+		kitSun.position.set(-10, 1 + Math.max(0.04, light.sun.elevation) * 20, -2.2 - 16);
 	}
 
 	function resize() {
@@ -260,14 +273,20 @@ export function createRig({ canvasHall, canvasActor, hours, plans, reduced = fal
 	 * Horizontal distance fades it in as he approaches, so a button lifts before he reaches
 	 * it instead of flicking on the frame he arrives.
 	 */
-	function nearness(obstacle, box) {
+	function nearness(obstacle, row, box) {
 		if (!obstacle) return 0;
 		const overlap = Math.min(obstacle.top + obstacle.height, box.top + box.height) - Math.max(obstacle.top, box.top);
-		if (overlap <= 0) return 0;
+		if (overlap <= 0 && !row.isPlate) return 0;
+		if (row.isPlate && overlap <= -200) return 0; // only ignore if completely offscreen vertically
+		
 		const gap = Math.max(obstacle.left - (box.left + box.width), box.left - (obstacle.left + obstacle.width));
 		const near = 1 - Math.max(0, gap) / 260;
 		if (near <= 0) return 0;
-		const share = overlap / Math.max(1, Math.min(box.height, obstacle.height));
+		
+		let share = 1;
+		if (!row.isPlate) {
+			share = Math.max(0, overlap) / Math.max(1, Math.min(box.height, obstacle.height));
+		}
 		return Math.min(1, share) * Math.min(1, near);
 	}
 
@@ -292,15 +311,45 @@ export function createRig({ canvasHall, canvasActor, hours, plans, reduced = fal
 	 */
 	function clearance(obstacle, row) {
 		if (!obstacle) return 0;
-		const left = row.box.left + row.box.width - obstacle.left;
-		const right = obstacle.left + obstacle.width - row.box.left;
+		const offset = row.scrollParent ? (row.scrollParent.scrollLeft - row.initialScrollX) : 0;
+		const currentBoxLeft = row.box.left - offset;
+		
+		const left = currentBoxLeft + row.box.width - obstacle.left;
+		const right = obstacle.left + obstacle.width - currentBoxLeft;
 		// One of these being spent means the row already sits clear of him on that side.
 		if (left <= 0 || right <= 0) return 0;
 
-		const canLeft = left <= Math.min(row.room.left, CLEAR_MAX);
-		const canRight = right <= Math.min(row.room.right, CLEAR_MAX);
+		const currentRoomLeft = Math.max(0, currentBoxLeft - 14); // GUTTER is 14
+		const currentRoomRight = Math.max(0, document.documentElement.clientWidth - (currentBoxLeft + row.box.width) - 14);
+
+		const canLeft = left <= Math.min(currentRoomLeft, CLEAR_MAX);
+		const canRight = right <= Math.min(currentRoomRight, CLEAR_MAX);
 		if (canLeft && (!canRight || left <= right)) return -left;
 		return canRight ? right : 0;
+	}
+
+	function box3ToScreen(box3, camera, width, height) {
+		let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+		const corners = [
+			new THREE.Vector3(box3.min.x, box3.min.y, box3.min.z),
+			new THREE.Vector3(box3.min.x, box3.min.y, box3.max.z),
+			new THREE.Vector3(box3.min.x, box3.max.y, box3.min.z),
+			new THREE.Vector3(box3.min.x, box3.max.y, box3.max.z),
+			new THREE.Vector3(box3.max.x, box3.min.y, box3.min.z),
+			new THREE.Vector3(box3.max.x, box3.min.y, box3.max.z),
+			new THREE.Vector3(box3.max.x, box3.max.y, box3.min.z),
+			new THREE.Vector3(box3.max.x, box3.max.y, box3.max.z),
+		];
+		for (const corner of corners) {
+			corner.project(camera);
+			const cx = (corner.x * 0.5 + 0.5) * width;
+			const cy = (0.5 - corner.y * 0.5) * height;
+			if (cx < minX) minX = cx;
+			if (cx > maxX) maxX = cx;
+			if (cy < minY) minY = cy;
+			if (cy > maxY) maxY = cy;
+		}
+		return { left: minX + window.scrollX, width: maxX - minX, top: minY + window.scrollY, height: maxY - minY };
 	}
 
 	/**
@@ -472,15 +521,31 @@ export function createRig({ canvasHall, canvasActor, hours, plans, reduced = fal
 		 * no animation.
 		 */
 		const box = screenBox(stateX, LANE);
-		const obstacle = obstacleFrom(box, {
+		const manObs = obstacleFrom(box, {
 			heading: dirSign * Math.min(1, gait.walk + gait.run),
 			lead: box.width * 0.45,
 		});
+
+		const obstacles = [];
+		if (manObs) obstacles.push(manObs);
+
+		for (const kitBox of kitBoxes) {
+			const screen = box3ToScreen(kitBox, camera, width, height);
+			// Inflate kit slightly so text doesn't touch the very edge of the mesh
+			obstacles.push({
+				left: screen.left - 18,
+				width: screen.width + 36,
+				top: screen.top - 18,
+				height: screen.height + 36,
+			});
+		}
+
+		if (flows && at.index === 3) console.log(JSON.stringify(obstacles));
 		if (flows) {
-			if (!reduced) flows.update(obstacle);
+			if (!reduced) flows.update(obstacles);
 			else if (at.index !== posedAt) {
 				posedAt = at.index;
-				flows.update(obstacle);
+				flows.update(obstacles);
 			}
 		}
 
@@ -493,9 +558,21 @@ export function createRig({ canvasHall, canvasActor, hours, plans, reduced = fal
 		 * recalc on the row.
 		 */
 		for (const row of page.yields) {
-			const hit = nearness(obstacle, row.box);
-			const open = smooth(row.open, hit, 180, dt);
-			const push = smooth(row.push, hit > 0 ? clearance(obstacle, row) : 0, 180, dt);
+			let maxHit = 0;
+			let targetObs = null;
+			const offset = row.scrollParent ? (row.scrollParent.scrollLeft - row.initialScrollX) : 0;
+			const currentBox = { ...row.box, left: row.box.left - offset };
+
+			for (const obs of obstacles) {
+				const hit = nearness(obs, row, currentBox);
+				if (hit > maxHit) {
+					maxHit = hit;
+					targetObs = obs;
+				}
+			}
+
+			const open = smooth(row.open, maxHit, 180, dt);
+			const push = smooth(row.push, maxHit > 0 ? clearance(targetObs, row) : 0, 180, dt);
 			if (Math.abs(open - row.open) > 0.0015 || (open > 0.0015) !== (row.open > 0.0015)) {
 				row.el.style.setProperty("--open", open.toFixed(3));
 			}

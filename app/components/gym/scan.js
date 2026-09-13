@@ -76,6 +76,15 @@ function inkBox(el, scrollX, scrollY) {
 	return { left: rect.left + scrollX, top: rect.top + scrollY, width: rect.width, height: rect.height };
 }
 
+function getScrollParent(node) {
+	if (node == null || node === document.body || node === document.documentElement) return null;
+	if (node.scrollWidth > node.clientWidth) {
+		const overflow = window.getComputedStyle(node).overflowX;
+		if (overflow === 'auto' || overflow === 'scroll') return node;
+	}
+	return getScrollParent(node.parentNode);
+}
+
 /**
  * Every row of type he has to get past, and how much room each one has to get out of
  * the way in.
@@ -113,6 +122,8 @@ function yieldsIn(scrollX, scrollY) {
 		const box = inkBox(el, scrollX, scrollY);
 		if (!(box.width > 0) || !(box.height > 0)) continue;
 
+		const scrollParent = getScrollParent(el);
+
 		taken.push(el);
 		el.dataset.yield = "";
 		rows.push({
@@ -124,6 +135,9 @@ function yieldsIn(scrollX, scrollY) {
 				left: Math.max(0, box.left - GUTTER),
 				right: Math.max(0, docWidth - (box.left + box.width) - GUTTER),
 			},
+			scrollParent,
+			initialScrollX: scrollParent ? scrollParent.scrollLeft : 0,
+			isPlate: el.hasAttribute("data-plate"),
 			open: 0,
 			push: 0,
 		});

@@ -33,7 +33,9 @@ import { toMinutes } from "@/lib/site/hours.mjs";
 import { getSiteSettings } from "@/lib/site/settings";
 import OpenNow from "./components/board/open-now";
 import Press from "./components/board/press";
-import PlanFace, { perMonth } from "./components/board/rate-row";
+import { perMonth } from "./components/board/rate-row";
+import PricingCard from "./components/board/pricing-card";
+import DragCarousel from "./components/board/drag-carousel";
 import { Stamp, TileText } from "./components/board/tile-text";
 import HoursStrip, { DoorLine } from "./components/gym/hours-strip";
 import Room from "./components/gym/room";
@@ -281,7 +283,7 @@ export default async function HomePage() {
 				 * has passed. No price here: nobody walks into a gym and asks that first.
 				 */}
 				<Station no={1} id="door" asks="Is it open, and where am I?">
-					<div className="flex flex-col gap-6 sm:gap-8">
+					<div className="slab rounded-3xl p-6 sm:p-10 flex flex-col gap-6 sm:gap-8">
 						<OpenNow hours={settings.hours} />
 						<TileText as="h1" text={settings.brand.name} className="tile-xl" press stagger={34} />
 					</div>
@@ -320,16 +322,17 @@ export default async function HomePage() {
 				 * place in two figures nobody had to write down.
 				 */}
 				<Station no={2} id="iron" asks="What can I actually train on?">
-					<TileText as="h2" text="The iron" className="tile-lg" />
-					<Prose>
-						Racks, bars, plates and the machines, on one open floor. Nothing here is a
-						separate membership and nothing is booked — you turn up and use it.
-					</Prose>
-
-					<FacilityList items={facilitiesIn(facilities, "iron")} />
+					<div className="slab rounded-3xl p-6 sm:p-10 flex flex-col gap-8">
+						<TileText as="h2" text="The iron" className="tile-lg" />
+						<Prose>
+							Racks, bars, plates and the machines, on one open floor. Nothing here is a
+							separate membership and nothing is booked — you turn up and use it.
+						</Prose>
+						<FacilityList items={facilitiesIn(facilities, "iron")} />
+					</div>
 
 					{rules.length ? (
-						<div className="flex flex-col gap-4">
+						<div className="slab rounded-3xl p-6 sm:p-10 flex flex-col gap-4">
 							<Stamp tone="tile">While you train</Stamp>
 							<ul className="flex flex-col border-b border-edge">
 								{rules.map((rule) => (
@@ -339,7 +342,9 @@ export default async function HomePage() {
 						</div>
 					) : null}
 
-					<Figures rows={figures} />
+					<div className="slab rounded-3xl p-6 sm:p-10">
+						<Figures rows={figures} />
+					</div>
 				</Station>
 
 				{/*
@@ -347,14 +352,15 @@ export default async function HomePage() {
 				 * card never answers: what am I getting that is not a machine.
 				 */}
 				<Station no={3} id="classes" asks="What else is included?">
-					<TileText as="h2" text="The floor" className="tile-lg" />
-					<Prose>
-						Every class the studio runs is in the one membership. There is no per-class fee,
-						no separate pass and no upgrade tier — the same term that opens the door opens
-						the floor.
-					</Prose>
-
-					<FacilityList items={facilitiesIn(facilities, "classes")} />
+					<div className="slab rounded-3xl p-6 sm:p-10 flex flex-col gap-8">
+						<TileText as="h2" text="The floor" className="tile-lg" />
+						<Prose>
+							Every class the studio runs is in the one membership. There is no per-class fee,
+							no separate pass and no upgrade tier — the same term that opens the door opens
+							the floor.
+						</Prose>
+						<FacilityList items={facilitiesIn(facilities, "classes")} />
+					</div>
 				</Station>
 
 				{/*
@@ -363,34 +369,35 @@ export default async function HomePage() {
 				 * owner's terms actually meter something.
 				 */}
 				<Station no={4} id="recovery" asks="What do I get afterwards?">
-					<TileText as="h2" text="Recovery" className="tile-lg" />
-					<Prose>
-						The end of a session is part of the session. Steam, the chair, a locker and
-						something hot are all on the same membership as the barbells.
-					</Prose>
-
-					<FacilityList items={facilitiesIn(facilities, "recovery")} />
-
-					{metered ? (
+					<div className="slab rounded-3xl p-6 sm:p-10 flex flex-col gap-8">
+						<TileText as="h2" text="Recovery" className="tile-lg" />
 						<Prose>
-							The steam bath and the massage chair are metered rather than unlimited: each
-							term includes a set number of both, and the count for a term is printed on its
-							line at the desk.
+							The end of a session is part of the session. Steam, the chair, a locker and
+							something hot are all on the same membership as the barbells.
 						</Prose>
-					) : null}
+						<FacilityList items={facilitiesIn(facilities, "recovery")} />
 
-					<Link
-						href="/transformations"
-						data-yield
-						className="ledger group flex items-baseline justify-between gap-5 py-5"
-					>
-						<span className="relative">
-							<TileText text="Member results" className="tile-sm" />
-						</span>
-						<span className="relative flex-none text-[0.68rem] font-bold uppercase tracking-[0.2em] text-muted transition-colors group-hover:text-action">
-							See the board
-						</span>
-					</Link>
+						{metered ? (
+							<Prose>
+								The steam bath and the massage chair are metered rather than unlimited: each
+								term includes a set number of both, and the count for a term is printed on its
+								line at the desk.
+							</Prose>
+						) : null}
+
+						<Link
+							href="/transformations"
+							data-yield
+							className="ledger group flex items-baseline justify-between gap-5 py-5"
+						>
+							<span className="relative">
+								<TileText text="Member results" className="tile-sm" />
+							</span>
+							<span className="relative flex-none text-[0.68rem] font-bold uppercase tracking-[0.2em] text-muted transition-colors group-hover:text-action">
+								See the board
+							</span>
+						</Link>
+					</div>
 				</Station>
 
 				{/*
@@ -399,44 +406,51 @@ export default async function HomePage() {
 				 * one fact in two media: a price the owner edits re-cuts the metal.
 				 */}
 				<Station no={5} id="desk" asks="What does it cost, and what happens if I press?">
-					<TileText as="h2" text="The desk" className="tile-lg" />
-					<Prose>
-						Longer terms cost less per month. Every term includes the whole floor and every
-						class; only the metered counts change.
-					</Prose>
+					<div className="slab rounded-3xl p-6 sm:p-10 flex flex-col gap-8">
+						<TileText as="h2" text="The desk" className="tile-lg" />
+						<Prose>
+							Longer terms cost less per month. Every term includes the whole floor and every
+							class; only the metered counts change.
+						</Prose>
+					</div>
 
 					{plans.length ? (
-						<ol className="border-b border-edge">
-							{plans.map((plan) => (
-								<li key={plan.id} data-plate={plan.id} data-yield className="border-t border-edge">
+						<div className="w-[100vw] relative left-1/2 -ml-[50vw]">
+							<DragCarousel className="gap-6 pb-8 pt-4 pl-[max(var(--gutter),calc(50vw-42rem))] pr-[max(320px,calc(50vw-42rem))]">
+								{plans.map((plan) => (
 									<Link
+										key={plan.id}
+										data-plate={plan.id}
+										data-yield
 										href={join}
 										aria-label={`${plan.title}, ₹${plan.priceInr} — ${
 											signedIn ? "take this term" : "sign in to take this term"
 										}`}
-										className="ledger group block py-5 sm:py-7"
+										className="relative flex-none w-[85vw] sm:w-[320px] snap-center outline-none"
 									>
-										<PlanFace plan={plan} />
+										<PricingCard plan={plan} className="h-full w-full" />
 									</Link>
-								</li>
-							))}
-						</ol>
+								))}
+							</DragCarousel>
+						</div>
 					) : null}
 
 					{best ? (
-						<p className="flex flex-wrap items-end gap-x-4 gap-y-1">
-							<span className="tabular text-[2.6rem] font-extrabold leading-[0.78] tracking-[-0.045em] text-tile [font-stretch:74%] sm:text-[3.4rem]">
-								₹{perMonth(best).toLocaleString("en-IN")}
-							</span>
-							<span className="pb-1 text-[0.7rem] uppercase leading-tight tracking-[0.16em] text-muted">
-								a month is the least it costs,
-								<br />
-								on the {best.title.toLowerCase()} term
-							</span>
-						</p>
+						<div className="slab rounded-3xl p-6 sm:p-10">
+							<p className="flex flex-wrap items-end gap-x-4 gap-y-1">
+								<span className="tabular text-[2.6rem] font-extrabold leading-[0.78] tracking-[-0.045em] text-tile [font-stretch:74%] sm:text-[3.4rem]">
+									₹{perMonth(best).toLocaleString("en-IN")}
+								</span>
+								<span className="pb-1 text-[0.7rem] uppercase leading-tight tracking-[0.16em] text-muted">
+									a month is the least it costs,
+									<br />
+									on the {best.title.toLowerCase()} term
+								</span>
+							</p>
+						</div>
 					) : null}
 
-					<div className="flex flex-col gap-4">
+					<div className="slab rounded-3xl p-6 sm:p-10 flex flex-col gap-4">
 						<Stamp tone="tile">What happens when you press it</Stamp>
 						<ol className="border-b border-edge">
 							{JOIN_STEPS.map(([step, detail], index) => (
@@ -462,7 +476,7 @@ export default async function HomePage() {
 						</ol>
 					</div>
 
-					<div className="flex flex-col items-start gap-3.5">
+					<div className="slab rounded-3xl p-6 sm:p-10 flex flex-col items-start gap-3.5">
 						<Press href={join} size="lg" data-yield>
 							{cta}
 						</Press>
@@ -474,7 +488,7 @@ export default async function HomePage() {
 					</div>
 
 					{hasVisitInfo(contact) ? (
-						<div id="visit" className="flex flex-col gap-4">
+						<div id="visit" className="slab rounded-3xl p-6 sm:p-10 flex flex-col gap-4">
 							<Stamp tone="tile">Where and how to reach us</Stamp>
 							{contact.addressLines?.length ? (
 								<address className="not-italic text-[0.95rem] leading-relaxed text-tile sm:text-[1.05rem]">

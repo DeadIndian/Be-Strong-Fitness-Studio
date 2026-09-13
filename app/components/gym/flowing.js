@@ -208,10 +208,15 @@ function paragraph(el) {
 	 * The plan is compared before any layout happens: same runs, same words, nothing to
 	 * do. That guard is why this costs nothing on the great majority of frames.
 	 */
-	function update(obstacle) {
-		const local = obstacle
-			? { left: obstacle.left - originX, width: obstacle.width, top: obstacle.top - originY, height: obstacle.height }
-			: null;
+	function update(obstacles) {
+		const local = obstacles
+			? obstacles.map((obs) => ({
+					left: obs.left - originX,
+					width: obs.width,
+					top: obs.top - originY,
+					height: obs.height,
+			  }))
+			: [];
 
 		const plan = [];
 		let parted = false;
@@ -259,8 +264,8 @@ export function createFlows() {
 	const all = [...document.querySelectorAll("[data-flow]")].map(paragraph).filter(Boolean);
 
 	return {
-		update(obstacle) {
-			for (const item of all) item.update(obstacle);
+		update(obstacles) {
+			for (const item of all) item.update(obstacles);
 		},
 		remeasure() {
 			for (const item of all) item.remeasure();
