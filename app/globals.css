@@ -61,6 +61,14 @@
 		overflow-x: hidden;
 	}
 
+	html:has(.legacy-theme) {
+		scroll-snap-type: none;
+	}
+
+	html:has(.legacy-theme) body {
+		overflow-x: visible;
+	}
+
 	/*
 	 * The far wall of the hall, and the light in it. It sits *behind* the room's own
 	 * canvas (z-index -10), not just behind the content — the last layer here is
