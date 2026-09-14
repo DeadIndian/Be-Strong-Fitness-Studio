@@ -137,6 +137,13 @@ export default function SiteNavbar({ settings, session = null }) {
 								key={link.href}
 								href={link.href}
 								aria-current={active ? "page" : undefined}
+								onClick={(e) => {
+									const [base, linkHash] = link.href.split("#");
+									if (pathname === base) {
+										e.preventDefault();
+										window.location.hash = linkHash || "";
+									}
+								}}
 								className={`relative flex items-center px-3 text-[0.72rem] font-bold uppercase tracking-[0.18em] transition-colors ${
 									active ? "text-tile" : "text-muted hover:text-tile"
 								}`}
@@ -194,7 +201,14 @@ export default function SiteNavbar({ settings, session = null }) {
 							<Link
 								key={link.href}
 								href={link.href}
-								onClick={close}
+								onClick={(e) => {
+									const [base, linkHash] = link.href.split("#");
+									if (pathname === base) {
+										e.preventDefault();
+										window.location.hash = linkHash || "";
+									}
+									close();
+								}}
 								className="flex min-h-[3.25rem] items-center justify-between gap-3 border-b border-edge px-4 text-[0.82rem] font-bold uppercase tracking-[0.18em] text-tile"
 							>
 								{link.label}
