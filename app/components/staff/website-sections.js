@@ -144,6 +144,17 @@ export function BrandSection({ draft, set, used, budget }) {
 
 	return (
 		<div className="flex flex-col gap-4">
+			<Panel title="Website Layout" hint="Choose between the legacy 2D layout and the new 3D hall layout.">
+				<SelectField
+					label="Landing Page Style"
+					value={draft.uiVersion || "2d"}
+					onChange={(event) => set(["uiVersion"], event.target.value)}
+				>
+					<option value="2d">Legacy 2D (Scrollytelling)</option>
+					<option value="3d">Modern 3D (Gym Hall)</option>
+				</SelectField>
+			</Panel>
+
 			<Panel title="The studio's name" hint="Used in the top rail, the page title and the footer.">
 				<div className="grid gap-4 sm:grid-cols-2">
 					<TextField

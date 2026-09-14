@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSessionContext } from "@/lib/auth/server";
+import { adminDb } from "@/lib/firebase/admin";
 import { GoogleGenAI } from "@google/genai";
 
+export const dynamic = "force-dynamic";
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const WORKOUT_PLAN_COLLECTION = "userAiWorkoutPlans";
 
 const PROMPT = `You are a professional fitness trainer. 
 Based on the user's goals, generate a daily workout routine.
@@ -26,6 +30,32 @@ The JSON must have the following structure:
   ]
 }
 Do not return any markdown formatting, only the raw JSON.`;
+
+function userPlanRef(uid) {
+	return adminDb.collection(WORKOUT_PLAN_COLLECTION).doc(uid);
+}
+
+export async function GET() {
+    try {
+        const session = await getSessionContext();
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const snapshot = await userPlanRef(session.uid).get();
+        if (!snapshot.exists) {
+            return NextResponse.json({ plan: null, goals: null });
+        }
+
+        return NextResponse.json(snapshot.data());
+    } catch (error) {
+        console.error("Fetch Workout Plan Error:", error);
+        return NextResponse.json(
+            { error: "Unable to fetch workout plan right now." },
+            { status: 500 },
+        );
+    }
+}
 
 export async function POST(request) {
 	const session = await getSessionContext();
@@ -56,9 +86,16 @@ export async function POST(request) {
         });
 
         const text = response.text;
-        const data = JSON.parse(text);
+        const plan = JSON.parse(text);
         
-        return NextResponse.json({ plan: data });
+        // Save to Firebase
+        await userPlanRef(session.uid).set({
+            plan,
+            goals,
+            updatedAt: new Date().toISOString()
+        });
+
+        return NextResponse.json({ plan, goals });
 	} catch (error) {
         console.error("Gemini Workout Plan Error:", error);
 		return NextResponse.json(
@@ -66,4 +103,22 @@ export async function POST(request) {
 			{ status: 500 },
 		);
 	}
+}
+
+export async function DELETE() {
+    const session = await getSessionContext();
+	if (!session) {
+		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+	}
+    
+    try {
+        await userPlanRef(session.uid).delete();
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Delete Workout Plan Error:", error);
+		return NextResponse.json(
+			{ error: "Unable to delete workout plan right now." },
+			{ status: 500 },
+		);
+    }
 }

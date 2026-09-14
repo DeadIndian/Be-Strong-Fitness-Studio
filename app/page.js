@@ -39,6 +39,7 @@ import DragCarousel from "./components/board/drag-carousel";
 import { Stamp, TileText } from "./components/board/tile-text";
 import HoursStrip, { DoorLine } from "./components/gym/hours-strip";
 import Room from "./components/gym/room";
+import LandingLegacy from "./components/landing-legacy";
 
 /** The three things that happen after the press, in the order they happen. */
 const JOIN_STEPS = [
@@ -255,6 +256,10 @@ export default async function HomePage() {
 
 	// Recovery only explains metering if the owner's terms actually meter something.
 	const metered = plans.some((plan) => plan.perks?.length);
+
+	if (settings.uiVersion === "2d") {
+		return <LandingLegacy />;
+	}
 
 	return (
 		<>

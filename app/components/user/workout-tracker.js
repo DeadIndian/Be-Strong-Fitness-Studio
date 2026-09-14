@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Panel, { Notice, Readout } from "../board/panel";
+import { useState, useEffect } from "react";
+import Panel, { Notice } from "../board/panel";
 import Press from "../board/press";
 import { TextField } from "../board/field";
 import { Stamp } from "../board/tile-text";
@@ -34,9 +34,31 @@ function CheckboxList({ title, exercises }) {
 
 export default function WorkoutTracker({ displayName }) {
     const [goals, setGoals] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [plan, setPlan] = useState(null);
+
+    useEffect(() => {
+        let live = true;
+        (async () => {
+            try {
+                const response = await fetch('/api/workouts/plan', { cache: 'no-store' });
+                const body = await response.json().catch(() => ({}));
+                if (!live) return;
+                
+                if (response.ok && body.plan) {
+                    setPlan(body.plan);
+                    setGoals(body.goals || "");
+                }
+            } catch (err) {
+                console.error(err);
+                if (live) setError("Could not load your saved plan.");
+            } finally {
+                if (live) setLoading(false);
+            }
+        })();
+        return () => { live = false; };
+    }, []);
 
     const generatePlan = async (e) => {
         e.preventDefault();
@@ -71,28 +93,61 @@ export default function WorkoutTracker({ displayName }) {
         }
     };
 
+    const deletePlan = async () => {
+        if (!confirm("Are you sure you want to delete your current plan and start over?")) {
+            return;
+        }
+        
+        setLoading(true);
+        setError("");
+
+        try {
+            const response = await fetch('/api/workouts/plan', { method: 'DELETE' });
+            if (!response.ok) throw new Error("Failed to delete plan");
+            setPlan(null);
+            setGoals("");
+        } catch (err) {
+            console.error(err);
+            setError("Failed to delete your plan.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading && !plan) {
+        return (
+            <div className="flex flex-col gap-6">
+                <Panel title="AI Workout Planner">
+                    <Stamp>Loading your plan...</Stamp>
+                </Panel>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col gap-6">
-            <Panel title="What do you want happening?" hint="Describe your fitness goals in your own words, and our AI will build a routine for you.">
-                <form className="flex flex-col gap-3" onSubmit={generatePlan}>
-                    <TextField 
-                        label="Your Goals"
-                        name="goals"
-                        placeholder="I want to lose 5kg and build upper body strength. I have access to dumbbells."
-                        value={goals}
-                        onChange={(e) => setGoals(e.target.value)}
-                        required
-                    />
-                    <div className="mt-2 flex items-center justify-between">
-                        <Press type="submit" disabled={loading} className="w-full sm:w-auto">
-                            {loading ? "Planning..." : "Generate My Plan"}
-                        </Press>
-                        <Notice tone="error">{error}</Notice>
-                    </div>
-                </form>
-            </Panel>
+            {!plan ? (
+                <Panel title="What do you want happening?" hint="Describe your fitness goals in your own words, and our AI will build a routine for you.">
+                    <form className="flex flex-col gap-3" onSubmit={generatePlan}>
+                        <TextField 
+                            label="Your Goals"
+                            name="goals"
+                            placeholder="I want to lose 5kg and build upper body strength. I have access to dumbbells."
+                            value={goals}
+                            onChange={(e) => setGoals(e.target.value)}
+                            required
+                        />
+                        <div className="mt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <Press type="submit" disabled={loading} className="w-full sm:w-auto">
+                                {loading ? "Planning..." : "Generate My Plan"}
+                            </Press>
+                            {error && <Notice tone="error">{error}</Notice>}
+                        </div>
+                    </form>
+                </Panel>
+            ) : null}
 
-            {plan && (
+            {plan ? (
                 <Panel title={plan.planTitle} hint={plan.summary}>
                     <div className="flex flex-col gap-6">
                         {plan.routines?.map((routine, idx) => (
@@ -103,8 +158,13 @@ export default function WorkoutTracker({ displayName }) {
                             />
                         ))}
                     </div>
+                    <div className="mt-8 border-t border-edge pt-6 flex justify-end">
+                        <Press type="button" tone="ghost" onClick={deletePlan} disabled={loading}>
+                            {loading ? "Working..." : "Edit my plan (Start Over)"}
+                        </Press>
+                    </div>
                 </Panel>
-            )}
+            ) : null}
         </div>
     );
 }
