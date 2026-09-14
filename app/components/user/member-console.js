@@ -12,13 +12,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Notice, Readout } from "../board/panel";
-import Tabs from "../board/tabs";
 import { Stamp, TileText } from "../board/tile-text";
 import CalorieCalculator from "./calorie-calculator";
 import GoalPlanner from "./goal-planner";
 import MembershipDesk from "./membership-desk";
 import ReviewsPanel from "./reviews-panel";
 import WorkoutFinder from "./workout-finder";
+import AiChat from "./ai-chat";
 
 const SECTIONS = [
 	{ id: "membership", label: "My plan" },
@@ -26,6 +26,7 @@ const SECTIONS = [
 	{ id: "nutrition", label: "Food" },
 	{ id: "workouts", label: "Exercises" },
 	{ id: "reviews", label: "Feedback" },
+	{ id: "chat", label: "Chat with AI Coach" },
 ];
 
 const STATUS_COLOR = {
@@ -134,8 +135,6 @@ export default function MemberConsole({ displayName, placeholder = true, payNote
 				<>
 					<TileText as="h1" text={displayName.toUpperCase()} className="tile-md" />
 
-					{/* What you hold, on one rule under your name — the standing of the account
-						is a fact to read at a glance, not a card to look at. */}
 					<div className="mt-5 flex flex-wrap items-baseline gap-x-8 gap-y-4 border-y border-edge py-4">
 						{loading ? (
 							<Stamp>Reading your account</Stamp>
@@ -226,6 +225,7 @@ export default function MemberConsole({ displayName, placeholder = true, payNote
 							</>
 						) : null}
 						{section === "reviews" ? <ReviewsPanel /> : null}
+						{section === "chat" ? <AiChat /> : null}
 					</div>
 				</>
 			)}

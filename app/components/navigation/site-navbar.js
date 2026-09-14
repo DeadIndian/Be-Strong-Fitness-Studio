@@ -62,11 +62,20 @@ export default function SiteNavbar({ settings, session = null }) {
 	const sheet = useRef(null);
 	const [busy, setBusy] = useState(false);
 
+	const [hash, setHash] = useState("");
+
 	const inStaff = pathname.startsWith("/dashboard/staff");
 	const inUser = pathname.startsWith("/dashboard/user");
 	
 	const links = inStaff ? STAFF_LINKS : (inUser ? USER_LINKS : publicLinks(settings));
 	const close = useCallback(() => sheet.current?.close(), []);
+
+	useEffect(() => {
+		setHash(window.location.hash);
+		const handleHashChange = () => setHash(window.location.hash);
+		window.addEventListener("hashchange", handleHashChange);
+		return () => window.removeEventListener("hashchange", handleHashChange);
+	}, []);
 
 	useEffect(() => close(), [pathname, close]);
 
@@ -110,7 +119,19 @@ export default function SiteNavbar({ settings, session = null }) {
 
 				<nav aria-label={inStaff ? "Staff sections" : "Board sections"} className="hidden items-stretch md:flex">
 					{links.map((link) => {
-						const active = !link.href.includes("#") && pathname === link.href;
+						let active = false;
+						if (inUser && links === USER_LINKS) {
+							const isHashLink = link.href.includes("#");
+							if (isHashLink) {
+								const linkHash = "#" + link.href.split("#")[1];
+								active = pathname === "/dashboard/user" && hash === linkHash;
+							} else {
+								active = pathname === "/dashboard/user" && (!hash || hash === "");
+							}
+						} else {
+							active = !link.href.includes("#") && pathname === link.href;
+						}
+						
 						return (
 							<Link
 								key={link.href}
