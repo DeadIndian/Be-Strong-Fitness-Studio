@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth/server";
 import { USER_ROLES } from "@/lib/constants/auth";
 import { getSiteSettings } from "@/lib/site/settings";
 import MemberConsole from "@/app/components/user/member-console";
+import WalkthroughIntro from "@/app/components/user/walkthrough-intro";
 
 export const metadata = { title: "My membership" };
 
@@ -13,10 +14,13 @@ export default async function UserDashboardPage() {
 	const displayName = session.displayName || session.email?.split("@")[0] || "Member";
 
 	return (
-		<MemberConsole
-			displayName={displayName}
-			placeholder={settings.checkout.placeholder}
-			payNote={settings.checkout.note}
-		/>
+		<>
+			<WalkthroughIntro />
+			<MemberConsole
+				displayName={displayName}
+				placeholder={settings.checkout.placeholder}
+				payNote={settings.checkout.note}
+			/>
+		</>
 	);
 }

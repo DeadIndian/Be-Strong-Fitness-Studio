@@ -51,13 +51,31 @@ function daysLeft(value) {
 }
 
 export default function MemberConsole({ displayName, placeholder = true, payNote = "" }) {
-	const [section, setSection] = useState(SECTIONS[0].id);
+	const [section, setSection] = useState("");
 	const [plans, setPlans] = useState([]);
 	const [membership, setMembership] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [busyPlan, setBusyPlan] = useState("");
 	const [error, setError] = useState("");
 	const [note, setNote] = useState("");
+
+	useEffect(() => {
+		const handleHashChange = () => {
+			const hash = window.location.hash.replace("#", "");
+			if (SECTIONS.find(s => s.id === hash)) {
+				setSection(hash);
+			} else {
+				setSection("");
+			}
+		};
+		handleHashChange(); // initial
+		window.addEventListener("hashchange", handleHashChange);
+		return () => window.removeEventListener("hashchange", handleHashChange);
+	}, []);
+
+	const goHub = () => {
+		window.location.hash = "";
+	};
 
 	useEffect(() => {
 		let live = true;
@@ -112,79 +130,105 @@ export default function MemberConsole({ displayName, placeholder = true, payNote
 
 	return (
 		<div className="mx-auto w-full max-w-board px-3 py-8 sm:px-6">
-			<TileText as="h1" text={displayName.toUpperCase()} className="tile-md" />
+			{section === "" ? (
+				<>
+					<TileText as="h1" text={displayName.toUpperCase()} className="tile-md" />
 
-			{/* What you hold, on one rule under your name — the standing of the account
-			    is a fact to read at a glance, not a card to look at. */}
-			<div className="mt-5 flex flex-wrap items-baseline gap-x-8 gap-y-4 border-y border-edge py-4">
-				{loading ? (
-					<Stamp>Reading your account</Stamp>
-				) : membership?.planTitle ? (
-					<>
-						<Readout label="Plan" value={membership.planTitle} />
-						<div className="flex flex-col gap-1">
-							<span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-muted">
-								Standing
-							</span>
-							<span
-								className="text-[1rem] font-bold uppercase leading-none tracking-[0.01em] [font-stretch:82%]"
-								style={{ color: STATUS_COLOR[status] ?? "var(--tile)" }}
-							>
-								{status || "unknown"}
-							</span>
-						</div>
-						<Readout label="Started" value={day(membership.startedAt)} className="tabular" />
-						<Readout
-							label="Runs to"
-							value={left === null ? day(membership.expiresAt) : `${day(membership.expiresAt)} · ${left} days`}
-							className="tabular"
-						/>
-					</>
-				) : (
-					<div className="flex flex-col gap-1.5">
-						<Stamp>No plan yet</Stamp>
-						<p className="max-w-measure text-[0.82rem] leading-snug text-tile">
-							Pick a term below. Every plan is the same room, the same equipment and the same hours
-							— only the length differs.
-						</p>
+					{/* What you hold, on one rule under your name — the standing of the account
+						is a fact to read at a glance, not a card to look at. */}
+					<div className="mt-5 flex flex-wrap items-baseline gap-x-8 gap-y-4 border-y border-edge py-4">
+						{loading ? (
+							<Stamp>Reading your account</Stamp>
+						) : membership?.planTitle ? (
+							<>
+								<Readout label="Plan" value={membership.planTitle} />
+								<div className="flex flex-col gap-1">
+									<span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-muted">
+										Standing
+									</span>
+									<span
+										className="text-[1rem] font-bold uppercase leading-none tracking-[0.01em] [font-stretch:82%]"
+										style={{ color: STATUS_COLOR[status] ?? "var(--tile)" }}
+									>
+										{status || "unknown"}
+									</span>
+								</div>
+								<Readout label="Started" value={day(membership.startedAt)} className="tabular" />
+								<Readout
+									label="Runs to"
+									value={left === null ? day(membership.expiresAt) : `${day(membership.expiresAt)} · ${left} days`}
+									className="tabular"
+								/>
+							</>
+						) : (
+							<div className="flex flex-col gap-1.5">
+								<Stamp>No plan yet</Stamp>
+								<p className="max-w-measure text-[0.82rem] leading-snug text-tile">
+									Pick a term below. Every plan is the same room, the same equipment and the same hours
+									— only the length differs.
+								</p>
+							</div>
+						)}
 					</div>
-				)}
-			</div>
 
-			<Tabs
-				label="Console sections"
-				items={SECTIONS}
-				active={section}
-				onSelect={setSection}
-				className="mt-6"
-			/>
+					<div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+						{SECTIONS.map((s) => (
+							<a
+								key={s.id}
+								href={`#${s.id}`}
+								className="group flex flex-col items-center justify-center gap-3 border border-edge bg-glass p-8 text-center transition-all hover:border-action hover:bg-[color-mix(in_srgb,var(--action)_10%,transparent)]"
+							>
+								<span className="text-[1.2rem] font-bold uppercase tracking-widest text-tile group-hover:text-action">
+									{s.label}
+								</span>
+								<span className="h-[2px] w-8 bg-muted transition-all group-hover:w-16 group-hover:bg-action" />
+							</a>
+						))}
+					</div>
+				</>
+			) : (
+				<>
+					<div className="mb-6 flex items-center justify-between border-b border-edge pb-4">
+						<TileText as="h2" text={SECTIONS.find(s => s.id === section)?.label.toUpperCase()} className="tile-sm" />
+						<button
+							onClick={goHub}
+							className="text-[0.72rem] font-bold uppercase tracking-[0.18em] text-muted hover:text-tile transition-colors"
+						>
+							← Back to Hub
+						</button>
+					</div>
 
-			<div className="mt-6 flex flex-col gap-6">
-				{error && section === "membership" ? <Notice tone="error">{error}</Notice> : null}
-				{note && section === "membership" ? <Notice tone="good">{note}</Notice> : null}
+					<div className="flex flex-col gap-6">
+						{error && section === "membership" ? <Notice tone="error">{error}</Notice> : null}
+						{note && section === "membership" ? <Notice tone="good">{note}</Notice> : null}
 
-				{section === "membership" ? (
-					<MembershipDesk
-						plans={plans}
-						membership={membership}
-						loading={loading}
-						busyPlan={busyPlan}
-						placeholder={placeholder}
-						payNote={payNote}
-						onActivate={activate}
-					/>
-				) : null}
-				{section === "planner" ? <GoalPlanner /> : null}
-				{section === "nutrition" ? <CalorieCalculator /> : null}
-				{section === "workouts" ? <WorkoutFinder /> : null}
-				{section === "reviews" ? <ReviewsPanel /> : null}
-			</div>
-
-            <div className="mt-8 flex justify-center border-t border-edge pt-8">
-                <a href="/dashboard/user/workouts" className="group flex items-center justify-center gap-2 bg-action px-6 py-3 text-sm font-bold uppercase tracking-widest text-board transition-transform hover:scale-105 hover:bg-tile">
-                    ✨ Generate AI Workout Plan ✨
-                </a>
-            </div>
+						{section === "membership" ? (
+							<MembershipDesk
+								plans={plans}
+								membership={membership}
+								loading={loading}
+								busyPlan={busyPlan}
+								placeholder={placeholder}
+								payNote={payNote}
+								onActivate={activate}
+							/>
+						) : null}
+						{section === "planner" ? <GoalPlanner /> : null}
+						{section === "nutrition" ? <CalorieCalculator /> : null}
+						{section === "workouts" ? (
+							<>
+								<WorkoutFinder />
+								<div className="mt-4 flex justify-center border-t border-edge pt-8">
+									<a href="/dashboard/user/workouts" className="group flex items-center justify-center gap-2 bg-action px-6 py-3 text-sm font-bold uppercase tracking-widest text-board transition-transform hover:scale-105 hover:bg-tile">
+										✨ Generate AI Workout Plan ✨
+									</a>
+								</div>
+							</>
+						) : null}
+						{section === "reviews" ? <ReviewsPanel /> : null}
+					</div>
+				</>
+			)}
 
 			<hr className="hair mt-8" />
 			<p className="mt-4 max-w-measure text-[0.8rem] leading-relaxed text-muted">

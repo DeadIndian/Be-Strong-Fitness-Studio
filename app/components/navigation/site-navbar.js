@@ -38,6 +38,15 @@ const STAFF_LINKS = [
 	{ label: "Website", href: "/dashboard/staff/website" },
 ];
 
+const USER_LINKS = [
+	{ label: "Hub", href: "/dashboard/user" },
+	{ label: "My plan", href: "/dashboard/user#membership" },
+	{ label: "Training plan", href: "/dashboard/user#planner" },
+	{ label: "Food", href: "/dashboard/user#nutrition" },
+	{ label: "Exercises", href: "/dashboard/user#workouts" },
+	{ label: "Feedback", href: "/dashboard/user#reviews" },
+];
+
 function MenuGlyph() {
 	return (
 		<span aria-hidden="true" className="flex flex-col gap-[3px]">
@@ -54,7 +63,9 @@ export default function SiteNavbar({ settings, session = null }) {
 	const [busy, setBusy] = useState(false);
 
 	const inStaff = pathname.startsWith("/dashboard/staff");
-	const links = inStaff ? STAFF_LINKS : publicLinks(settings);
+	const inUser = pathname.startsWith("/dashboard/user");
+	
+	const links = inStaff ? STAFF_LINKS : (inUser ? USER_LINKS : publicLinks(settings));
 	const close = useCallback(() => sheet.current?.close(), []);
 
 	useEffect(() => close(), [pathname, close]);
