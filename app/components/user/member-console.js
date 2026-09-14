@@ -180,6 +180,12 @@ export default function MemberConsole({ displayName, placeholder = true, payNote
 				{section === "reviews" ? <ReviewsPanel /> : null}
 			</div>
 
+            <div className="mt-8 flex justify-center border-t border-edge pt-8">
+                <a href="/dashboard/user/workouts" className="group flex items-center justify-center gap-2 bg-action px-6 py-3 text-sm font-bold uppercase tracking-widest text-board transition-transform hover:scale-105 hover:bg-tile">
+                    ✨ Generate AI Workout Plan ✨
+                </a>
+            </div>
+
 			<hr className="hair mt-8" />
 			<p className="mt-4 max-w-measure text-[0.8rem] leading-relaxed text-muted">
 				Anything in here wrong? Ask at the desk — the studio edits its own rates, hours and details,

@@ -106,8 +106,19 @@ export default function WorkoutFinder() {
 								alt={`${exercise.name} demonstration`}
 								loading="lazy"
 								className="aspect-[4/3] w-full border border-edge bg-[color:var(--board-deep)] object-contain"
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = "/images/workout-placeholder.svg";
+                                }}
 							/>
-						) : null}
+						) : (
+                            <img
+                                src="/images/workout-placeholder.svg"
+                                alt={`${exercise.name} placeholder`}
+                                loading="lazy"
+                                className="aspect-[4/3] w-full border border-edge bg-[color:var(--board-deep)] object-contain"
+                            />
+                        )}
 
 						<div className="flex flex-1 flex-col gap-2">
 							<div className="flex flex-wrap items-baseline justify-between gap-2">
