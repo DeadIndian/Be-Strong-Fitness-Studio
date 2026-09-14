@@ -501,6 +501,23 @@ export default function HomePage() {
 					</div>
 				</section>
 
+				<section className="section map-section" id="location">
+					<div className="container fade-up">
+						<h2 className="section-title text-center">Our Location</h2>
+						<div className="w-full h-[450px] rounded-2xl overflow-hidden shadow-2xl mt-8">
+							<iframe 
+								src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3807.25868765236!2d78.4867415870128!3d17.399368840919745!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb99fe9dd8f235%3A0x133e54f1adc2a40d!2sBe%20Strong%20Fitness%20%26%20Pilates%20Studio!5e0!3m2!1sen!2sin!4v1789383296165!5m2!1sen!2sin" 
+								width="100%" 
+								height="100%" 
+								style={{ border: 0 }} 
+								allowFullScreen="" 
+								loading="lazy" 
+								referrerPolicy="strict-origin-when-cross-origin"
+							/>
+						</div>
+					</div>
+				</section>
+
 				<footer>
 					<div className="container text-center">
 						<p>&copy; 2026 BE STRONG FITNESS STUDIO. All rights reserved.</p>
