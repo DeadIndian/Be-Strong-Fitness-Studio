@@ -88,7 +88,7 @@ export default function SiteNavbar({ settings, session = null }) {
 		}
 	};
 
-	const home = session?.staff ? "/dashboard/staff" : session ? "/dashboard/user" : "/";
+	const home = "/";
 	// On the sign-in page itself the action cannot be "Sign in" — the way out is back.
 	const action = session
 		? { href: session.staff ? "/dashboard/staff" : "/dashboard/user", label: session.staff ? "Console" : "My membership" }

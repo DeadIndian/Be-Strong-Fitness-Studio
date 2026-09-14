@@ -167,6 +167,8 @@
 		backdrop-filter: blur(16px) saturate(115%);
 		border: 1px solid var(--edge);
 		border-top-color: var(--edge-lit);
+		border-radius: 1.5rem;
+		overflow: hidden;
 	}
 
 	.slab-lit::after {
@@ -365,15 +367,14 @@
 	 * object at input scale, so the admin panel is the same room the visitor reads.
 	 */
 	.board-input {
-		width: 100%;
-		min-height: 2.75rem;
-		padding: 0.55rem 0.7rem;
-		background-color: rgba(0, 0, 0, 0.35);
-		color: var(--tile);
+		background-color: rgba(255, 255, 255, 0.04);
 		border: 1px solid var(--edge);
-		font-family: inherit;
-		font-size: 0.9rem;
-		font-weight: 500;
+		color: var(--tile);
+		font-family: var(--font-board);
+		font-size: 0.95rem;
+		padding: 0.8rem 1.1rem;
+		width: 100%;
+		border-radius: 1.5rem;
 		letter-spacing: 0.01em;
 	}
 

@@ -175,7 +175,7 @@ export default function MemberConsole({ displayName, placeholder = true, payNote
 							<a
 								key={s.id}
 								href={`#${s.id}`}
-								className="group flex flex-col items-center justify-center gap-3 border border-edge bg-glass p-8 text-center transition-all hover:border-action hover:bg-[color-mix(in_srgb,var(--action)_10%,transparent)]"
+								className="group flex flex-col items-center justify-center gap-3 border border-edge bg-glass p-8 text-center transition-all hover:border-action hover:bg-[color-mix(in_srgb,var(--action)_10%,transparent)] rounded-3xl"
 							>
 								<span className="text-[1.2rem] font-bold uppercase tracking-widest text-tile group-hover:text-action">
 									{s.label}

@@ -50,7 +50,7 @@ export default function WalkthroughIntro() {
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-			<div className="w-full max-w-md bg-glass border border-edge border-t-edge-lit p-8 shadow-2xl relative">
+			<div className="w-full max-w-md bg-glass border border-edge border-t-edge-lit p-8 shadow-2xl relative rounded-3xl">
 				<div className="mb-8">
 					<span className="text-[0.66rem] font-bold uppercase tracking-[0.2em] text-action mb-2 block">
 						Step {step + 1} of {STEPS.length}

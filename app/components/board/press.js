@@ -51,6 +51,7 @@ export default function Press({
 		skin.className,
 		SIZES[size] ?? SIZES.md,
 		full ? "w-full" : "",
+		"rounded-full",
 		className,
 	].join(" ");
 	const merged = { ...skin.style, ...style };
